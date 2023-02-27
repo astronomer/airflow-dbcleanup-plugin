@@ -1,0 +1,14 @@
+.git
+.env
+airflow_settings.yaml
+dags/
+include/
+Dockerfile
+packages.txt
+requirements.txt
+.dockerignore
+.astro
+plugins/__pycache__
+.DS_Store
+dist/
+*.egg-info/
