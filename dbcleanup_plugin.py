@@ -57,16 +57,18 @@ def dbcleanup_report():
 def cleanupdb(session, days, dry_run) -> Any:
     logging.info("CLEANUP FUNCTION")
     if dry_run:
-        logging.info("performing cleanup dry run")
+        logging.info("performing DBcleanup dry run ...")
         db_cleanup.run_cleanup(
             clean_before_timestamp=dates.days_ago(int(days)), dry_run=True
         )
-        logging.info("clean up dry completed")
+        logging.info("DBcleanup dry completed...")
     else:
+        logging.info("DB cleanup initiated..... ")
         db_cleanup.run_cleanup(
             clean_before_timestamp=dates.days_ago(int(days)), confirm=False
         )
-    return {"status": "cleanup job executed sucessfully"}
+        logging.info("DB cleanup completed successfully....")
+    #return {"status": "cleanup job executed sucessfully"}
 
 
 # Creating a flask appbuilder BaseView
