@@ -8,7 +8,6 @@ from flask_appbuilder import expose
 from airflow.www.app import csrf
 from flask_login.utils import _get_user
 from flask_jwt_extended.view_decorators import jwt_required, verify_jwt_in_request
-
 from airflow import configuration
 from airflow.plugins_manager import AirflowPlugin
 from airflow.utils.session import provide_session
@@ -43,7 +42,7 @@ airflow_webserver_base_url = configuration.get("webserver", "BASE_URL")
 
 def dbcleanup_report():
     validate_days = request.args.get("days", type=int)
-    validate_dry_run = request.args.get("days", type=bool, default=True)
+    validate_dry_run = request.args.get("dry_run", type=bool)
     try:
         days = int(validate_days)
         dry_run = bool(validate_dry_run)
@@ -55,9 +54,18 @@ def dbcleanup_report():
 
 
 @provide_session
-def cleanupdb(session, days, dry_run=True) -> Any:
+def cleanupdb(session, days, dry_run) -> Any:
     logging.info("CLEANUP FUNCTION")
-    db_cleanup.run_cleanup(clean_before_timestamp=dates.days_ago(days), dry_run=dry_run)
+    if dry_run:
+        logging.info("performing cleanup dry run")
+        db_cleanup.run_cleanup(
+            clean_before_timestamp=dates.days_ago(int(days)), dry_run=True
+        )
+        logging.info("clean up dry completed")
+    else:
+        db_cleanup.run_cleanup(
+            clean_before_timestamp=dates.days_ago(int(days)), confirm=False
+        )
     return {"status": "cleanup job executed sucessfully"}
 
 
@@ -67,9 +75,10 @@ class AstronomerDbcleanup(AppBuilderBaseView):
 
     @expose("api/v1/dbcleanup", methods=["POST", "GET"])
     @csrf.exempt
-    @jwt_token_secure
+    # disabled jwt auth for rest point
+    # @jwt_token_secure
     def tasks(self):
-        logging.info("API VIEW")
+        # logging.info("API VIEW")
         dbcleanup_report()
         return {"status": "completed"}
 
