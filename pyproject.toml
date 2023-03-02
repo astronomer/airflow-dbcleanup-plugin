@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 dynamic = ["version"]
-name = "astronomer-dbcleanup-plugin"
-description = "Dbcleaup Plugin for Astronomer Platform"
+name = "astronomer-analytics-plugin"
+description = "Analytics Plugin for Astronomer Platform"
 readme = "README.md"
 requires-python = ">=3.7"
 keywords = [
     "airflow",
-    "dbcleanup",
+    "analytics",
     "Astronomer",
     "astronomer.io",
     "plugin",
@@ -55,7 +55,7 @@ include-package-data = true
 package-dir = { "astronomer_dbcleanup_plugin" = "." }
 
 [tool.setuptools.dynamic]
-version = { attr = "analytics_plugin.__version__" }
+version = { attr = "dbcleanup_plugin.__version__" }
 
 [tool.setuptools.package-data]
 astronomer_dbcleanup_plugin = ["templates/dbcleanup_plugin/index.html"]
