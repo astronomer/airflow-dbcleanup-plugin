@@ -9,6 +9,7 @@ from flask_appbuilder import expose
 from flask_login.utils import _get_user
 from flask_jwt_extended.view_decorators import jwt_required, verify_jwt_in_request
 
+
 from sqlalchemy.orm import Session
 from sqlalchemy import inspect, text
 
@@ -68,17 +69,19 @@ def _airflow_dbexport():
     validate_export = request.args.get("export", type=bool, default=False)
     validate_export_format = request.args.get("export_format", type=str, default="csv")
     validate_output_path = request.args.get("output_path", type=str, default="/tmp")
+    validate_drop_archives = request.args.get("drop_archives", type=bool, default=False)
     try:
         export = bool(validate_export)
         export_format = str(validate_export_format)
         output_path = str(validate_output_path)
+        drop_archives = bool(validate_drop_archives)
 
     except ValueError as e:
         log.error(f"Validation Failed for request args: {e}")
         raise e
     else:
         return export_cleaned_records(
-            export=export, export_format=export_format, output_path=output_path
+            export=export, export_format=export_format, output_path=output_path, drop_archives=drop_archives
         )
 
 
@@ -152,13 +155,13 @@ def _effective_table_names(*, table_names: list[str]):
 def export_cleaned_records(
     export_format,
     output_path,
-    export=False,
+    export,
+    drop_archives,
     table_names=None,
-    drop_archives=False,
     session: Session = NEW_SESSION,
 ):
     """Export cleaned data to the given output path in the given format."""
-    if export:
+    if export == True:
         logging.info("Proceeding with export selection")
         effective_table_names, _ = _effective_table_names(table_names=table_names)
         if drop_archives:
