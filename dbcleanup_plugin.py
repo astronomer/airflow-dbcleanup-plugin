@@ -61,7 +61,7 @@ def cleanupdb(session, days, dry_run) -> Any:
         db_cleanup.run_cleanup(
             clean_before_timestamp=dates.days_ago(int(days)), dry_run=True
         )
-        logging.info("DBcleanup dry completed...")
+        logging.info("DBcleanup dry completed ")
     else:
         logging.info("DB cleanup initiated..... ")
         db_cleanup.run_cleanup(
@@ -80,7 +80,6 @@ class AstronomerDbcleanup(AppBuilderBaseView):
     # disabled jwt auth for rest point
     # @jwt_token_secure
     def tasks(self):
-        # logging.info("API VIEW")
         dbcleanup_report()
         return {"status": "completed"}
 
