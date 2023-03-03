@@ -8,8 +8,6 @@ from flask_appbuilder import BaseView as AppBuilderBaseView
 from flask_appbuilder import expose
 from flask_login.utils import _get_user
 from flask_jwt_extended.view_decorators import jwt_required, verify_jwt_in_request
-
-
 from sqlalchemy.orm import Session
 from sqlalchemy import inspect, text
 
@@ -106,7 +104,7 @@ def _airflow_dbexport():
             output_path=output_path,
             drop_archives=drop_archives,
             provider=provider,
-            bucket_name=bucket_name
+            bucket_name=bucket_name,
         )
 
 
@@ -139,7 +137,9 @@ def _dump_table_to_file(*, target_table, file_path, export_format, session):
             csv_writer.writerow(cursor.keys())
             csv_writer.writerows(cursor.fetchall())
     else:
-        raise AirflowException(f"Export format {export_format} is not supported.Current supported formats are csv")
+        raise AirflowException(
+            f"Export format {export_format} is not supported.Current supported formats are csv"
+        )
 
 
 # self comment - we need to optimise this function for custom use case
@@ -212,23 +212,26 @@ def export_cleaned_records(
 
             export_count += 1
 
-            # Writing the logic to send data to cloud storage based on the provided type s3,gcs,azblob
-            if provider == "s3": # aws , azure, gcp 
-                # constraint for s3 will be bucket name 
+            # Logic to send data to cloud storage based on the provider type S3,GCS,AzBlob
+            file_path = os.path.join(output_path, f"{table_name}.{export_format}")
+            file_name = f"{table_name}.{export_format}"
+            if provider == "s3":  # aws , azure, gcp
                 log.info("sending data to s3")
                 S3Hook().check_for_bucket(bucket_name=bucket_name)
-                #s3Call = S3Hook().check_for_bucket(bucket_name="airflowdbarchieve")
-                # for upload we need to do file read and send to s3
-                # if in case webserver crashes will partial copy not sure how that 
-                # can be handled
-                FILE_NAME = f"/tmp/{table_name}.{export_format}"
-                with open(FILE_NAME, "rb") as f:
-                   S3Hook()._upload_file_obj(file_obj=f,key=FILE_NAME,bucket_name=bucket_name)
-                #log.info("####################")
-            elif provider == 'gcs':
-                logging.info("Connecting to gcs service to validate bucket connection........")
-                FILE_NAME = f"/tmp/{table_name}.{export_format}"
-                GCSHook().upload(bucket_name=bucket_name,filename=FILE_NAME,object_name=FILE_NAME)
+                with open(file_path, "rb") as f:
+                    S3Hook()._upload_file_obj(
+                        file_obj=f, key=file_name, bucket_name=bucket_name
+                    )
+                log.info("data sent to s3 bucket sucessfully")
+            elif provider == "gcs":
+                logging.info(
+                    "Connecting to gcs service to validate bucket connection........"
+                )
+                GCSHook().upload(
+                    bucket_name=bucket_name, filename=file_path, object_name=file_name
+                )
+            elif provider == "azure":
+                log.info("Logic Yet to be added")
 
             if drop_archives:
                 logging.info("Dropping archived table %s", table_name)
