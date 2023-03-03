@@ -17,8 +17,7 @@ from airflow.plugins_manager import AirflowPlugin
 from airflow.utils.session import NEW_SESSION, provide_session
 from airflow.utils import db_cleanup, dates
 from airflow.utils.db_cleanup import config_dict
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from airflow.providers.google.cloud.operators.gcs import GCSHook
+from airflow.settings import conf
 
 __version__ = "1.0.0"
 
@@ -197,6 +196,7 @@ def export_cleaned_records(
         db_table_names = [
             x for x in inspector.get_table_names() if x.startswith(ARCHIVE_TABLE_PREFIX)
         ]
+
         export_count = 0
         dropped_count = 0
         for table_name in db_table_names:
@@ -213,23 +213,43 @@ def export_cleaned_records(
             export_count += 1
 
             # Logic to send data to cloud storage based on the provider type S3,GCS,AzBlob
+            try:
+                release_name = conf.get("kubernetes_labels", "release")
+            except Exception:
+                release_name = "airflow"
             file_path = os.path.join(output_path, f"{table_name}.{export_format}")
-            file_name = f"{table_name}.{export_format}"
+            file_name = f"{release_name}/{table_name}.{export_format}"
             if provider == "s3":  # aws , azure, gcp
-                log.info("sending data to s3")
-                S3Hook().check_for_bucket(bucket_name=bucket_name)
-                with open(file_path, "rb") as f:
-                    S3Hook()._upload_file_obj(
-                        file_obj=f, key=file_name, bucket_name=bucket_name
-                    )
-                log.info("data sent to s3 bucket sucessfully")
+                try:
+                    from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+
+                    log.info("sending data to s3")
+                    s3Class = S3Hook()
+                    s3Class.check_for_bucket(bucket_name=bucket_name)
+                    with open(file_path, "rb") as f:
+                        s3Class._upload_file_obj(
+                            file_obj=f, key=file_name, bucket_name=bucket_name
+                        )
+                    log.info("data sent to s3 bucket sucessfully")
+                except Exception as e:
+                    return False, e
+
             elif provider == "gcs":
-                logging.info(
-                    "Connecting to gcs service to validate bucket connection........"
-                )
-                GCSHook().upload(
-                    bucket_name=bucket_name, filename=file_path, object_name=file_name
-                )
+                try:
+                    from airflow.providers.google.cloud.operators.gcs import GCSHook
+
+                    logging.info(
+                        "Connecting to gcs service to validate bucket connection........"
+                    )
+                    gcsClass = GCSHook()
+                    gcsClass.upload(
+                        bucket_name=bucket_name,
+                        filename=file_path,
+                        object_name=file_name,
+                    )
+                except Exception as e:
+                    return False, e
+
             elif provider == "azure":
                 log.info("Logic Yet to be added")
 
@@ -242,8 +262,10 @@ def export_cleaned_records(
             export_count,
             dropped_count,
         )
+        return True, ""
     else:
         logging.info("Skipping export")
+        return False, "skipping export"
 
 
 # Creating a flask appbuilder BaseView
@@ -257,10 +279,14 @@ class AstronomerDbcleanup(AppBuilderBaseView):
     def tasks(self):
         try:
             dbcleanup_report()
-            # export_cleaned_records(export_format="csv",output_path="/tmp",drop_archives=True)
             # Additional function to call export and cleanup from db
-            _airflow_dbexport()
-            return {"status": "completed"}
+            export, e = _airflow_dbexport()
+            if export:
+                return {"status": "completed"}
+            else:
+                return {
+                    "status": f"db cleanup completed export failed with exception {e}"
+                }
         except Exception as e:
             return {"status": f"failed with {e}"}
 
