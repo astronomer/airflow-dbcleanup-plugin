@@ -83,12 +83,12 @@ def _airflow_dbexport():
     validate_export = request.args.get("export", type=str, default=False)
     validate_export_format = request.args.get("export_format", type=str, default="csv")
     validate_output_path = request.args.get("output_path", type=str, default="/tmp")
-    validate_drop_archives = request.args.get("drop_archives", type=bool, default=False)
+    validate_drop_archives = request.args.get("drop_archives", type=str, default=False)
     try:
         export = getboolean(validate_export)
         export_format = str(validate_export_format)
         output_path = str(validate_output_path)
-        drop_archives = bool(validate_drop_archives)
+        drop_archives = getboolean(validate_drop_archives)
 
     except ValueError as e:
         log.error(f"Validation Failed for request args: {e}")
