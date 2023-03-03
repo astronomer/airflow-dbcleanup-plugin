@@ -19,6 +19,8 @@ from airflow.plugins_manager import AirflowPlugin
 from airflow.utils.session import NEW_SESSION, provide_session
 from airflow.utils import db_cleanup, dates
 from airflow.utils.db_cleanup import config_dict
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.providers.google.cloud.operators.gcs import GCSHook
 
 __version__ = "1.0.0"
 
@@ -83,11 +85,15 @@ def _airflow_dbexport():
     validate_export = request.args.get("export", type=str, default=False)
     validate_export_format = request.args.get("export_format", type=str, default="csv")
     validate_output_path = request.args.get("output_path", type=str, default="/tmp")
+    validate_provider = request.args.get("provider", type=str, default="")
+    validate_bucket_name = request.args.get("bucket_name", type=str, default="")
     validate_drop_archives = request.args.get("drop_archives", type=str, default=False)
     try:
         export = getboolean(validate_export)
         export_format = str(validate_export_format)
         output_path = str(validate_output_path)
+        provider = str(validate_provider)
+        bucket_name = str(validate_bucket_name)
         drop_archives = getboolean(validate_drop_archives)
 
     except ValueError as e:
@@ -99,6 +105,8 @@ def _airflow_dbexport():
             export_format=export_format,
             output_path=output_path,
             drop_archives=drop_archives,
+            provider=provider,
+            bucket_name=bucket_name
         )
 
 
@@ -172,6 +180,8 @@ def _effective_table_names(*, table_names: list[str]):
 def export_cleaned_records(
     export_format,
     output_path,
+    provider,
+    bucket_name,
     export,
     drop_archives,
     table_names=None,
@@ -201,6 +211,25 @@ def export_cleaned_records(
             )
 
             export_count += 1
+
+            # Writing the logic to send data to cloud storage based on the provided type s3,gcs,azblob
+            if provider == "s3": # aws , azure, gcp 
+                # constraint for s3 will be bucket name 
+                log.info("sending data to s3")
+                S3Hook().check_for_bucket(bucket_name=bucket_name)
+                #s3Call = S3Hook().check_for_bucket(bucket_name="airflowdbarchieve")
+                # for upload we need to do file read and send to s3
+                # if in case webserver crashes will partial copy not sure how that 
+                # can be handled
+                FILE_NAME = f"/tmp/{table_name}.{export_format}"
+                with open(FILE_NAME, "rb") as f:
+                   S3Hook()._upload_file_obj(file_obj=f,key=FILE_NAME,bucket_name=bucket_name)
+                #log.info("####################")
+            elif provider == 'gcs':
+                logging.info("Connecting to gcs service to validate bucket connection........")
+                FILE_NAME = f"/tmp/{table_name}.{export_format}"
+                GCSHook().upload(bucket_name=bucket_name,filename=FILE_NAME,object_name=FILE_NAME)
+
             if drop_archives:
                 logging.info("Dropping archived table %s", table_name)
                 session.execute(text(f"DROP TABLE {table_name}"))
