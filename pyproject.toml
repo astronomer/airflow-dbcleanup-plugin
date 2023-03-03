@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 dynamic = ["version"]
-name = "astronomer-analytics-plugin"
-description = "Analytics Plugin for Astronomer Platform"
+name = "astronomer-dbcleanup-plugin"
+description = "A DB cleanup plugin for Astronomer Airflow"
 readme = "README.md"
 requires-python = ">=3.7"
 keywords = [
