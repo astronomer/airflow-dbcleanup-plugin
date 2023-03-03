@@ -48,12 +48,26 @@ airflow_webserver_base_url = configuration.get("webserver", "BASE_URL")
 ARCHIVE_TABLE_PREFIX = "_airflow_deleted__"
 
 
+# picked code from airflow logic
+def getboolean(val: str) -> bool:
+    val = val.lower().strip()
+    if val in ("t", "true", "1"):
+        return True
+    elif val in ("f", "false", "0"):
+        return False
+    else:
+        raise Exception(
+            f"Failed to convert value to bool. Expected bool but got something else."
+            f'Current value: "{val}".'
+        )
+
+
 def dbcleanup_report():
     validate_days = request.args.get("days", type=int)
-    validate_dry_run = request.args.get("dry_run", type=bool)
+    validate_dry_run = request.args.get("dry_run", type=str)
     try:
         days = int(validate_days)
-        dry_run = bool(validate_dry_run)
+        dry_run = getboolean(validate_dry_run)
 
     except ValueError as e:
         log.error(f"Validation Failed for request args: {e}")
@@ -66,12 +80,12 @@ def dbcleanup_report():
 
 
 def _airflow_dbexport():
-    validate_export = request.args.get("export", type=bool, default=False)
+    validate_export = request.args.get("export", type=str, default=False)
     validate_export_format = request.args.get("export_format", type=str, default="csv")
     validate_output_path = request.args.get("output_path", type=str, default="/tmp")
     validate_drop_archives = request.args.get("drop_archives", type=bool, default=False)
     try:
-        export = bool(validate_export)
+        export = getboolean(validate_export)
         export_format = str(validate_export_format)
         output_path = str(validate_output_path)
         drop_archives = bool(validate_drop_archives)
@@ -81,7 +95,10 @@ def _airflow_dbexport():
         raise e
     else:
         return export_cleaned_records(
-            export=export, export_format=export_format, output_path=output_path, drop_archives=drop_archives
+            export=export,
+            export_format=export_format,
+            output_path=output_path,
+            drop_archives=drop_archives,
         )
 
 
@@ -161,7 +178,7 @@ def export_cleaned_records(
     session: Session = NEW_SESSION,
 ):
     """Export cleaned data to the given output path in the given format."""
-    if export == True:
+    if export:
         logging.info("Proceeding with export selection")
         effective_table_names, _ = _effective_table_names(table_names=table_names)
         if drop_archives:
@@ -182,6 +199,7 @@ def export_cleaned_records(
                 export_format=export_format,
                 session=session,
             )
+
             export_count += 1
             if drop_archives:
                 logging.info("Dropping archived table %s", table_name)
@@ -205,11 +223,14 @@ class AstronomerDbcleanup(AppBuilderBaseView):
     # disabled jwt auth for rest point
     # @jwt_token_secure
     def tasks(self):
-        dbcleanup_report()
-        # export_cleaned_records(export_format="csv",output_path="/tmp",drop_archives=True)
-        # Additional function to call export and cleanup from db
-        _airflow_dbexport()
-        return {"status": "completed"}
+        try:
+            dbcleanup_report()
+            # export_cleaned_records(export_format="csv",output_path="/tmp",drop_archives=True)
+            # Additional function to call export and cleanup from db
+            _airflow_dbexport()
+            return {"status": "completed"}
+        except Exception as e:
+            return {"status": f"failed with {e}"}
 
 
 # Defining the plugin class
