@@ -131,7 +131,7 @@ def _dump_table_to_file(*, target_table, file_path, export_format, session):
             csv_writer.writerow(cursor.keys())
             csv_writer.writerows(cursor.fetchall())
     else:
-        raise AirflowException(f"Export format {export_format} is not supported.")
+        raise AirflowException(f"Export format {export_format} is not supported.Current supported formats are csv")
 
 
 # self comment - we need to optimise this function for custom use case
