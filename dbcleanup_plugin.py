@@ -79,12 +79,14 @@ def dbcleanup_report():
 
 
 def _airflow_dbexport():
-    validate_export = request.args.get("export", type=str, default=False)
+    validate_export = request.args.get("export", type=str, default="False")
     validate_export_format = request.args.get("export_format", type=str, default="csv")
     validate_output_path = request.args.get("output_path", type=str, default="/tmp")
     validate_provider = request.args.get("provider", type=str, default="")
     validate_bucket_name = request.args.get("bucket_name", type=str, default="")
-    validate_drop_archives = request.args.get("drop_archives", type=str, default=False)
+    validate_drop_archives = request.args.get(
+        "drop_archives", type=str, default="False"
+    )
     try:
         export = getboolean(validate_export)
         export_format = str(validate_export_format)
@@ -252,6 +254,11 @@ def export_cleaned_records(
 
             elif provider == "azure":
                 log.info("Logic Yet to be added")
+
+            else:
+                raise AirflowException(
+                    f"Cloud Provider {provider} is not supported.supported providers  are gcs,s3,azure"
+                )
 
             if drop_archives:
                 logging.info("Dropping archived table %s", table_name)
