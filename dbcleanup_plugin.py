@@ -88,12 +88,14 @@ def _airflow_dbexport():
     validate_drop_archives = request.args.get(
         "drop_archives", type=str, default="False"
     )
+    validate_deployment_name = request.args.get("deployment_name", type=str, default="")
     try:
         export_format = str(validate_export_format)
         output_path = str(validate_output_path)
         provider = str(validate_provider)
         bucket_name = str(validate_bucket_name)
         drop_archives = getboolean(validate_drop_archives)
+        deployment_name = str(validate_deployment_name)
 
     except ValueError as e:
         log.error(f"Validation Failed for request args: {e}")
@@ -105,6 +107,7 @@ def _airflow_dbexport():
             drop_archives=drop_archives,
             provider=provider,
             bucket_name=bucket_name,
+            deployment_name=deployment_name,
         )
 
 
@@ -140,21 +143,6 @@ def _dump_table_to_file(*, target_table, file_path, export_format, session):
         )
 
 
-# self comment - we need to optimise this function for custom use case
-# currently we are by passing it
-def _confirm_drop_archives(*, tables: list[str]):
-    # question = (
-    #    f"You have requested that we drop archived records for tables {tables!r}.\n"
-    #    f"This is irreversible.  Consider backing up the tables first \n"
-    #    f"Enter 'drop archived tables' (without quotes) to proceed."
-    # )
-    # print(question)
-    # answer = input().strip()
-    # if not answer == "drop archived tables":
-    #    raise SystemExit("User did not confirm; exiting.")
-    logging.info("Dropping records from the database.")
-
-
 def _effective_table_names(*, table_names: list[str]):
     desired_table_names = set(table_names or config_dict)
     effective_config_dict = {
@@ -181,14 +169,13 @@ def export_cleaned_records(
     provider,
     bucket_name,
     drop_archives,
+    deployment_name,
     table_names=None,
     session: Session = NEW_SESSION,
 ):
     """Export cleaned data to the given output path in the given format."""
     logging.info("Proceeding with export selection")
     effective_table_names, _ = _effective_table_names(table_names=table_names)
-    if drop_archives:
-        _confirm_drop_archives(tables=sorted(effective_table_names))
     inspector = inspect(session.bind)
     db_table_names = [
         x for x in inspector.get_table_names() if x.startswith(ARCHIVE_TABLE_PREFIX)
@@ -207,10 +194,13 @@ def export_cleaned_records(
         )
         export_count += 1
         # Logic to send data to cloud storage based on the provider type S3,GCS,AzBlob
-        try:
-            release_name = conf.get("kubernetes_labels", "release")
-        except Exception:
-            release_name = "airflow"
+        if deployment_name:
+            release_name = deployment_name
+        else:
+            try:
+                release_name = conf.get("kubernetes_labels", "release")
+            except Exception:
+                release_name = "airflow"
         file_path = os.path.join(output_path, f"{table_name}.{export_format}")
         file_name = f"{release_name}/{table_name}.{export_format}"
         if provider == "s3":  # aws , azure, gcp
