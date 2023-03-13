@@ -65,7 +65,7 @@ def getboolean(val: str) -> bool:
 
 def dbcleanup_report():
     validate_days = request.args.get("days", type=int)
-    validate_dry_run = request.args.get("dry_run", type=str)
+    validate_dry_run = request.args.get("dry_run", type=str, default="True")
     try:
         days = int(validate_days)
         dry_run = getboolean(validate_dry_run)
@@ -81,7 +81,6 @@ def dbcleanup_report():
 
 
 def _airflow_dbexport():
-    validate_export = request.args.get("export", type=str, default="False")
     validate_export_format = request.args.get("export_format", type=str, default="csv")
     validate_output_path = request.args.get("output_path", type=str, default="/tmp")
     validate_provider = request.args.get("provider", type=str, default="")
@@ -90,7 +89,6 @@ def _airflow_dbexport():
         "drop_archives", type=str, default="False"
     )
     try:
-        export = getboolean(validate_export)
         export_format = str(validate_export_format)
         output_path = str(validate_output_path)
         provider = str(validate_provider)
@@ -102,7 +100,6 @@ def _airflow_dbexport():
         raise e
     else:
         return export_cleaned_records(
-            export=export,
             export_format=export_format,
             output_path=output_path,
             drop_archives=drop_archives,
@@ -130,8 +127,6 @@ def cleanupdb(session, days, dry_run) -> Any:
 
 
 # Adopted most of the work from @ephraimbuddy
-
-
 def _dump_table_to_file(*, target_table, file_path, export_format, session):
     if export_format == "csv":
         with open(file_path, "w") as f:
@@ -185,96 +180,87 @@ def export_cleaned_records(
     output_path,
     provider,
     bucket_name,
-    export,
     drop_archives,
     table_names=None,
     session: Session = NEW_SESSION,
 ):
     """Export cleaned data to the given output path in the given format."""
-    if export:
-        logging.info("Proceeding with export selection")
-        effective_table_names, _ = _effective_table_names(table_names=table_names)
-        if drop_archives:
-            _confirm_drop_archives(tables=sorted(effective_table_names))
-        inspector = inspect(session.bind)
-        db_table_names = [
-            x for x in inspector.get_table_names() if x.startswith(ARCHIVE_TABLE_PREFIX)
-        ]
-
-        export_count = 0
-        dropped_count = 0
-        for table_name in db_table_names:
-            if not any("__" + x + "__" in table_name for x in effective_table_names):
-                continue
-            logging.info("Exporting table %s", table_name)
-            _dump_table_to_file(
-                target_table=table_name,
-                file_path=os.path.join(output_path, f"{table_name}.{export_format}"),
-                export_format=export_format,
-                session=session,
-            )
-
-            export_count += 1
-
-            # Logic to send data to cloud storage based on the provider type S3,GCS,AzBlob
-            try:
-                release_name = conf.get("kubernetes_labels", "release")
-            except Exception:
-                release_name = "airflow"
-            file_path = os.path.join(output_path, f"{table_name}.{export_format}")
-            file_name = f"{release_name}/{table_name}.{export_format}"
-            if provider == "s3":  # aws , azure, gcp
-                try:
-                    from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-
-                    log.info("sending data to s3")
-                    s3Class = S3Hook()
-                    s3Class.check_for_bucket(bucket_name=bucket_name)
-                    with open(file_path, "rb") as f:
-                        s3Class._upload_file_obj(
-                            file_obj=f, key=file_name, bucket_name=bucket_name
-                        )
-                    log.info("data sent to s3 bucket sucessfully")
-                except Exception as e:
-                    return False, e
-
-            elif provider == "gcs":
-                try:
-                    from airflow.providers.google.cloud.operators.gcs import GCSHook
-
-                    logging.info(
-                        "Connecting to gcs service to validate bucket connection........"
-                    )
-                    gcsClass = GCSHook()
-                    gcsClass.upload(
-                        bucket_name=bucket_name,
-                        filename=file_path,
-                        object_name=file_name,
-                    )
-                except Exception as e:
-                    return False, e
-
-            elif provider == "azure":
-                log.info("Logic Yet to be added")
-
-            else:
-                raise AirflowException(
-                    f"Cloud Provider {provider} is not supported.supported providers  are gcs,s3,azure"
-                )
-
-            if drop_archives:
-                logging.info("Dropping archived table %s", table_name)
-                session.execute(text(f"DROP TABLE {table_name}"))
-                dropped_count += 1
-        logging.info(
-            "Total exported tables: %s, Total dropped tables: %s",
-            export_count,
-            dropped_count,
+    logging.info("Proceeding with export selection")
+    effective_table_names, _ = _effective_table_names(table_names=table_names)
+    if drop_archives:
+        _confirm_drop_archives(tables=sorted(effective_table_names))
+    inspector = inspect(session.bind)
+    db_table_names = [
+        x for x in inspector.get_table_names() if x.startswith(ARCHIVE_TABLE_PREFIX)
+    ]
+    export_count = 0
+    dropped_count = 0
+    for table_name in db_table_names:
+        if not any("__" + x + "__" in table_name for x in effective_table_names):
+            continue
+        logging.info("Exporting table %s", table_name)
+        _dump_table_to_file(
+            target_table=table_name,
+            file_path=os.path.join(output_path, f"{table_name}.{export_format}"),
+            export_format=export_format,
+            session=session,
         )
-        return True, ""
-    else:
-        logging.info("Skipping export")
-        return False, "skipping export"
+        export_count += 1
+        # Logic to send data to cloud storage based on the provider type S3,GCS,AzBlob
+        try:
+            release_name = conf.get("kubernetes_labels", "release")
+        except Exception:
+            release_name = "airflow"
+        file_path = os.path.join(output_path, f"{table_name}.{export_format}")
+        file_name = f"{release_name}/{table_name}.{export_format}"
+        if provider == "s3":  # aws , azure, gcp
+            try:
+                from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+
+                log.info("sending data to s3")
+                s3Class = S3Hook()
+                s3Class.check_for_bucket(bucket_name=bucket_name)
+                with open(file_path, "rb") as f:
+                    s3Class._upload_file_obj(
+                        file_obj=f, key=file_name, bucket_name=bucket_name
+                    )
+                log.info("data sent to s3 bucket sucessfully")
+            except Exception as e:
+                return False, e
+        elif provider == "gcs":
+            try:
+                from airflow.providers.google.cloud.operators.gcs import GCSHook
+
+                logging.info(
+                    "Connecting to gcs service to validate bucket connection........"
+                )
+                gcsClass = GCSHook()
+                gcsClass.upload(
+                    bucket_name=bucket_name,
+                    filename=file_path,
+                    object_name=file_name,
+                )
+            except Exception as e:
+                return False, e
+        elif provider == "azure":
+            log.info("Logic Yet to be added")
+        else:
+            raise AirflowException(
+                f"Cloud Provider {provider} is not supported.supported providers  are gcs,s3,azure"
+            )
+        if drop_archives:
+            logging.info("Dropping archived table %s", table_name)
+            session.execute(text(f"DROP TABLE {table_name}"))
+            dropped_count += 1
+    logging.info(
+        "Total exported tables: %s, Total dropped tables: %s",
+        export_count,
+        dropped_count,
+    )
+    return True, ""
+    # else:
+    #    logging.info("Skipping export")
+    #    return False, "skipping export"
 
 
 # Creating a flask appbuilder BaseView
