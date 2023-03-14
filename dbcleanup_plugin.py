@@ -84,6 +84,7 @@ def _airflow_dbexport():
     validate_export_format = request.args.get("export_format", type=str, default="csv")
     validate_output_path = request.args.get("output_path", type=str, default="/tmp")
     validate_provider = request.args.get("provider", type=str, default="")
+    validate_conn_id = request.args.get("conn_id",type=str,default="")
     validate_bucket_name = request.args.get("bucket_name", type=str, default="")
     validate_drop_archives = request.args.get(
         "drop_archives", type=str, default="False"
@@ -96,6 +97,7 @@ def _airflow_dbexport():
         bucket_name = str(validate_bucket_name)
         drop_archives = getboolean(validate_drop_archives)
         deployment_name = str(validate_deployment_name)
+        conn_id = str(validate_conn_id)
 
     except ValueError as e:
         log.error(f"Validation Failed for request args: {e}")
@@ -106,6 +108,7 @@ def _airflow_dbexport():
             output_path=output_path,
             drop_archives=drop_archives,
             provider=provider,
+            conn_id=conn_id,
             bucket_name=bucket_name,
             deployment_name=deployment_name,
         )
@@ -168,6 +171,7 @@ def export_cleaned_records(
     output_path,
     provider,
     bucket_name,
+    conn_id,
     drop_archives,
     deployment_name,
     table_names=None,
@@ -208,7 +212,7 @@ def export_cleaned_records(
                 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
                 log.info("sending data to s3")
-                s3Class = S3Hook()
+                s3Class = S3Hook(aws_conn_id=conn_id)
                 s3Class.check_for_bucket(bucket_name=bucket_name)
                 with open(file_path, "rb") as f:
                     s3Class._upload_file_obj(
@@ -224,7 +228,7 @@ def export_cleaned_records(
                 logging.info(
                     "Connecting to gcs service to validate bucket connection........"
                 )
-                gcsClass = GCSHook()
+                gcsClass = GCSHook(gcp_conn_id=conn_id)
                 gcsClass.upload(
                     bucket_name=bucket_name,
                     filename=file_path,
