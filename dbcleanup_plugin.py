@@ -116,7 +116,6 @@ def _airflow_dbexport():
 
 @provide_session
 def cleanupdb(session, days, dry_run) -> Any:
-    logging.info("CLEANUP FUNCTION")
     if dry_run:
         logging.info("performing DBcleanup dry run ...")
         db_cleanup.run_cleanup(
@@ -129,7 +128,6 @@ def cleanupdb(session, days, dry_run) -> Any:
             clean_before_timestamp=dates.days_ago(int(days)), confirm=False
         )
         logging.info("DB cleanup completed successfully....")
-    # return {"status": "cleanup job executed sucessfully"}
 
 
 # Adopted most of the work from @ephraimbuddy
