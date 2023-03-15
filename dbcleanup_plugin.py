@@ -84,7 +84,7 @@ def _airflow_dbexport():
     validate_export_format = request.args.get("export_format", type=str, default="csv")
     validate_output_path = request.args.get("output_path", type=str, default="/tmp")
     validate_provider = request.args.get("provider", type=str, default="")
-    validate_conn_id = request.args.get("conn_id",type=str,default="")
+    validate_conn_id = request.args.get("conn_id", type=str, default="")
     validate_bucket_name = request.args.get("bucket_name", type=str, default="")
     validate_drop_archives = request.args.get(
         "drop_archives", type=str, default="False"
@@ -211,7 +211,9 @@ def export_cleaned_records(
             try:
                 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
-                log.info("sending data to s3")
+                logging.info(
+                    "Connecting to aws s3 service to validate bucket connection........"
+                )
                 s3Class = S3Hook(aws_conn_id=conn_id)
                 s3Class.check_for_bucket(bucket_name=bucket_name)
                 with open(file_path, "rb") as f:
@@ -237,7 +239,22 @@ def export_cleaned_records(
             except Exception as e:
                 return False, e
         elif provider == "azure":
-            log.info("Logic Yet to be added")
+            try:
+                from airflow.providers.microsoft.azure.hooks.wasb import WasbHook
+
+                logging.info(
+                    "Connecting to azure blob service to validate bucket connection........"
+                )
+                azureClass = WasbHook(wasb_conn_id=conn_id)
+                with open(file_path, "rb") as f:
+                    azureClass.upload(
+                        container_name=bucket_name,
+                        data=f,
+                        blob_name=file_name,
+                    )
+
+            except Exception as e:
+                return False, e
         else:
             raise AirflowException(
                 f"Cloud Provider {provider} is not supported.supported providers  are gcs,s3,azure"
