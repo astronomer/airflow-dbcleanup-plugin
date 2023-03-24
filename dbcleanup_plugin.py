@@ -64,8 +64,8 @@ def getboolean(val: str) -> bool:
 
 
 def dbcleanup_report():
-    validate_days = request.args.get("days", type=int)
-    validate_dry_run = request.args.get("dry_run", type=str, default="True")
+    validate_days = request.args.get("olderThan", type=int)
+    validate_dry_run = request.args.get("dryRun", type=str, default="True")
     try:
         days = int(validate_days)
         dry_run = getboolean(validate_dry_run)
@@ -81,15 +81,16 @@ def dbcleanup_report():
 
 
 def _airflow_dbexport():
-    validate_export_format = request.args.get("export_format", type=str, default="csv")
-    validate_output_path = request.args.get("output_path", type=str, default="/tmp")
+    validate_export_format = request.args.get("exportFormat", type=str, default="csv")
+    validate_output_path = request.args.get("outputPath", type=str, default="/tmp")
     validate_provider = request.args.get("provider", type=str, default="")
-    validate_conn_id = request.args.get("conn_id", type=str, default="")
+    validate_conn_id = request.args.get("connectionId", type=str, default="")
     validate_bucket_name = request.args.get("bucket_name", type=str, default="")
-    validate_drop_archives = request.args.get(
-        "drop_archives", type=str, default="False"
+    validate_provider_secret_env_name = request.args.get(
+        "providerEnvSecretName", type=str, default=""
     )
-    validate_deployment_name = request.args.get("deployment_name", type=str, default="")
+    validate_drop_archives = request.args.get("purgeTable", type=str, default="False")
+    validate_deployment_name = request.args.get("deploymentName", type=str, default="")
     try:
         export_format = str(validate_export_format)
         output_path = str(validate_output_path)
@@ -98,6 +99,7 @@ def _airflow_dbexport():
         drop_archives = getboolean(validate_drop_archives)
         deployment_name = str(validate_deployment_name)
         conn_id = str(validate_conn_id)
+        provider_secret_env_name = str(validate_provider_secret_env_name)
 
     except ValueError as e:
         log.error(f"Validation Failed for request args: {e}")
@@ -109,6 +111,7 @@ def _airflow_dbexport():
             drop_archives=drop_archives,
             provider=provider,
             conn_id=conn_id,
+            provider_secret_env_name=provider_secret_env_name,
             bucket_name=bucket_name,
             deployment_name=deployment_name,
         )
@@ -170,6 +173,7 @@ def export_cleaned_records(
     provider,
     bucket_name,
     conn_id,
+    provider_secret_env_name,
     drop_archives,
     deployment_name,
     table_names=None,
@@ -188,6 +192,7 @@ def export_cleaned_records(
         if not any("__" + x + "__" in table_name for x in effective_table_names):
             continue
         logging.info("Exporting table %s", table_name)
+        os.makedirs(output_path, exist_ok=True)
         _dump_table_to_file(
             target_table=table_name,
             file_path=os.path.join(output_path, f"{table_name}.{export_format}"),
@@ -205,7 +210,7 @@ def export_cleaned_records(
                 release_name = "airflow"
         file_path = os.path.join(output_path, f"{table_name}.{export_format}")
         file_name = f"{release_name}/{table_name}.{export_format}"
-        if provider == "s3":  # aws , azure, gcp
+        if provider == "aws":  # aws , azure, gcp
             try:
                 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
@@ -221,14 +226,27 @@ def export_cleaned_records(
                 log.info("data sent to s3 bucket sucessfully")
             except Exception as e:
                 return False, e
-        elif provider == "gcs":
+        elif provider == "gcp":
             try:
                 from airflow.providers.google.cloud.operators.gcs import GCSHook
 
                 logging.info(
                     "Connecting to gcs service to validate bucket connection........"
                 )
-                gcsClass = GCSHook(gcp_conn_id=conn_id)
+                logging.info(f"what comes here as conn_id {conn_id}")
+                if conn_id == "" or conn_id is None:
+                    logging.info(
+                        "fallback to google connection default connection flow"
+                    )
+                    os.environ["AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT"] = os.getenv(
+                        provider_secret_env_name
+                    )
+                    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.getenv(
+                        provider_secret_env_name
+                    )
+                    gcsClass = GCSHook()
+                else:
+                    gcsClass = GCSHook(gcp_conn_id=conn_id)
                 gcsClass.upload(
                     bucket_name=bucket_name,
                     filename=file_path,
@@ -253,11 +271,22 @@ def export_cleaned_records(
 
             except Exception as e:
                 return False, e
+        elif provider == "local":
+            try:
+                from shutil import copyfile
+
+                logging.info("Connecting to local storage ........")
+                destPath = os.path.join(f"{bucket_name}", f"{release_name}")
+                os.makedirs(destPath, exist_ok=True)
+                copyfile(file_path, f"{bucket_name}/{file_name}")
+            except Exception as e:
+                return False, e
         else:
             raise AirflowException(
                 f"Cloud Provider {provider} is not supported.supported providers  are gcs,s3,azure"
             )
         if drop_archives:
+            os.remove(file_path)
             logging.info("Dropping archived table %s", table_name)
             session.execute(text(f"DROP TABLE {table_name}"))
             dropped_count += 1
