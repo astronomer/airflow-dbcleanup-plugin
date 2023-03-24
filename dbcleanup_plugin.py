@@ -283,7 +283,7 @@ def export_cleaned_records(
                 return False, e
         else:
             raise AirflowException(
-                f"Cloud Provider {provider} is not supported.supported providers  are gcs,s3,azure"
+                f"Cloud Provider {provider} is not supported.supported providers  are aws,gcp,azure,local"
             )
         if drop_archives:
             os.remove(file_path)
