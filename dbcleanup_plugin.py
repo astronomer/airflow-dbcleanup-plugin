@@ -139,17 +139,17 @@ def cleanupdb(session, days, dry_run) -> Any:
 # Adopted most of the work from @ephraimbuddy
 def _dump_table_to_file(*, target_table, file_path, export_format, session):
     if export_format == "csv":
-        with open(file_path, "w") as f:
-            csv_writer = csv.writer(f)
-            cursor = session.execute(text(f"SELECT * FROM {target_table}"))
-            csv_writer.writerow(cursor.keys())
-            # csv_writer.writerows(cursor.fetchall())
-            batch_size = 5000
-            while True:
-                if rows := cursor.fetchmany(batch_size):
+        cursor = session.execute(text(f"SELECT * FROM {target_table}"))
+        batch_size = 5000
+        f = open(file_path, "w").close()
+        while True:
+            if rows := cursor.fetchmany(batch_size):
+                with open(file_path, "a") as f:
+                    csv_writer = csv.writer(f)
+                    csv_writer.writerow(cursor.keys())
                     csv_writer.writerows(rows)
-                else:
-                    break
+            else:
+                break
     else:
         raise AirflowException(
             f"Export format {export_format} is not supported.Currently supported formats are csv"
