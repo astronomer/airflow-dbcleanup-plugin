@@ -244,7 +244,6 @@ def export_cleaned_records(
                     logging.info(
                         "Connecting to gcs service to validate bucket connection........"
                     )
-                    logging.info(f"what comes here as conn_id {conn_id}")
                     if conn_id == "" or conn_id is None:
                         logging.info(
                             "fallback to google connection default connection flow"
@@ -284,9 +283,8 @@ def export_cleaned_records(
                     return False, release_name, provider, e
             elif provider == "local":
                 try:
-                    from shutil import copyfile
-
                     logging.info("Connecting to local storage ........")
+                    from shutil import copyfile
                     destPath = os.path.join(f"{bucket_name}", f"{release_name}")
                     os.makedirs(destPath, exist_ok=True)
                     copyfile(file_path, f"{bucket_name}/{file_name}")
@@ -294,7 +292,7 @@ def export_cleaned_records(
                     return False, release_name, provider, e
             else:
                 raise AirflowException(
-                    f"Cloud Provider {provider} is not supported.supported providers  are aws,gcp,azure,local"
+                    f"Cloud provider {provider} is not supported.Supported providers are aws, gcp, azure, local"
                 )
             if drop_archives:
                 os.remove(file_path)
