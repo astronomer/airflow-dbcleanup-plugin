@@ -256,6 +256,7 @@ def export_cleaned_records(
                         )
                         gcsClass = GCSHook()
                     else:
+                        logging.info("connecting to google service from conn_id flow")
                         gcsClass = GCSHook(gcp_conn_id=conn_id)
                     gcsClass.upload(
                         bucket_name=bucket_name,
@@ -285,6 +286,7 @@ def export_cleaned_records(
                 try:
                     logging.info("Connecting to local storage ........")
                     from shutil import copyfile
+
                     destPath = os.path.join(f"{bucket_name}", f"{release_name}")
                     os.makedirs(destPath, exist_ok=True)
                     copyfile(file_path, f"{bucket_name}/{file_name}")
