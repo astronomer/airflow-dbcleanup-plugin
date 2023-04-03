@@ -129,11 +129,11 @@ def cleanupdb(session, days, dry_run) -> Any:
         )
         logging.info("DBcleanup dry run completed ")
     else:
-        logging.info("DB cleanup initiated..... ")
+        logging.info("DBcleanup initiated..... ")
         db_cleanup.run_cleanup(
             clean_before_timestamp=dates.days_ago(int(days)), confirm=False
         )
-        logging.info("DB cleanup completed successfully....")
+        logging.info("DBcleanup completed successfully....")
 
 
 # Adopted most of the work from @ephraimbuddy
@@ -170,7 +170,7 @@ def _effective_table_names(*, table_names: list[str]):
         )
     if not effective_table_names:
         raise SystemExit(
-            "No tables selected for db cleanup. Please choose valid table names."
+            "No tables selected for DBcleanup. Please choose valid table names."
         )
     return effective_table_names, effective_config_dict
 
