@@ -152,7 +152,7 @@ def _dump_table_to_file(*, target_table, file_path, export_format, session):
                     break
     else:
         raise AirflowException(
-            f"Export format {export_format} is not supported. Currently the only supported format is csv."
+            f"Export format {export_format} is not supported.Currently supported formats are csv"
         )
 
 
@@ -190,7 +190,7 @@ def export_cleaned_records(
     session: Session = NEW_SESSION,
 ):
     """Export cleaned data to the given output path in the given format."""
-    # Logic to send data to cloud storage based on the provider type S3,GCS,AzBlob
+    # Logic to send data to cloud storage based on the provider type s3, gcs, azure
     if deployment_name:
         release_name = deployment_name
     else:
@@ -221,7 +221,7 @@ def export_cleaned_records(
             export_count += 1
             file_path = os.path.join(output_path, f"{table_name}.{export_format}")
             file_name = f"{release_name}/{table_name}.{export_format}"
-            if provider == "aws":  # aws , azure, gcp
+            if provider == "aws":
                 try:
                     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
