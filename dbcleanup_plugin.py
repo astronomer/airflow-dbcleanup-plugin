@@ -52,9 +52,9 @@ ARCHIVE_TABLE_PREFIX = "_airflow_deleted__"
 # picked code from airflow logic
 def getboolean(val: str) -> bool:
     val = val.lower().strip()
-    if val in ("t", "true", "1"):
+    if val in {"t", "true", "1"}:
         return True
-    elif val in ("f", "false", "0"):
+    elif val in {"f", "false", "0"}:
         return False
     else:
         raise Exception(
@@ -116,18 +116,18 @@ def _airflow_dbexport():
             provider_secret_env_name=provider_secret_env_name,
             bucket_name=bucket_name,
             deployment_name=deployment_name,
-            dry_run=dry_run
+            dry_run=dry_run,
         )
 
 
 @provide_session
 def cleanupdb(session, days, dry_run) -> Any:
     if dry_run:
-        logging.info("performing DBcleanup dry run ...")
+        logging.info("Performing DBcleanup dry run ...")
         db_cleanup.run_cleanup(
             clean_before_timestamp=dates.days_ago(int(days)), dry_run=True
         )
-        logging.info("DBcleanup dry completed ")
+        logging.info("DBcleanup dry run completed ")
     else:
         logging.info("DB cleanup initiated..... ")
         db_cleanup.run_cleanup(
@@ -143,7 +143,13 @@ def _dump_table_to_file(*, target_table, file_path, export_format, session):
             csv_writer = csv.writer(f)
             cursor = session.execute(text(f"SELECT * FROM {target_table}"))
             csv_writer.writerow(cursor.keys())
-            csv_writer.writerows(cursor.fetchall())
+            # csv_writer.writerows(cursor.fetchall())
+            batch_size = 5000
+            while True:
+                if rows := cursor.fetchmany(batch_size):
+                    csv_writer.writerows(rows)
+                else:
+                    break
     else:
         raise AirflowException(
             f"Export format {export_format} is not supported.Current supported formats are csv"
@@ -184,126 +190,126 @@ def export_cleaned_records(
     session: Session = NEW_SESSION,
 ):
     """Export cleaned data to the given output path in the given format."""
+    # Logic to send data to cloud storage based on the provider type S3,GCS,AzBlob
+    if deployment_name:
+        release_name = deployment_name
+    else:
+        try:
+            release_name = conf.get("kubernetes_labels", "release")
+        except Exception:
+            release_name = "airflow"
     if not dry_run:
-       logging.info("Proceeding with export selection")
-       effective_table_names, _ = _effective_table_names(table_names=table_names)
-       inspector = inspect(session.bind)
-       db_table_names = [
-           x for x in inspector.get_table_names() if x.startswith(ARCHIVE_TABLE_PREFIX)
-       ]
-       export_count = 0
-       dropped_count = 0
-       for table_name in db_table_names:
-           if not any("__" + x + "__" in table_name for x in effective_table_names):
-               continue
-           logging.info("Exporting table %s", table_name)
-           os.makedirs(output_path, exist_ok=True)
-           _dump_table_to_file(
-               target_table=table_name,
-               file_path=os.path.join(output_path, f"{table_name}.{export_format}"),
-               export_format=export_format,
-               session=session,
-           )
-           export_count += 1
-           # Logic to send data to cloud storage based on the provider type S3,GCS,AzBlob
-           if deployment_name:
-               release_name = deployment_name
-           else:
-               try:
-                   release_name = conf.get("kubernetes_labels", "release")
-               except Exception:
-                   release_name = "airflow"
-           file_path = os.path.join(output_path, f"{table_name}.{export_format}")
-           file_name = f"{release_name}/{table_name}.{export_format}"
-           if provider == "aws":  # aws , azure, gcp
-               try:
-                   from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-   
-                   logging.info(
-                       "Connecting to aws s3 service to validate bucket connection........"
-                   )
-                   s3Class = S3Hook(aws_conn_id=conn_id)
-                   s3Class.check_for_bucket(bucket_name=bucket_name)
-                   with open(file_path, "rb") as f:
-                       s3Class._upload_file_obj(
-                           file_obj=f, key=file_name, bucket_name=bucket_name
-                       )
-                   log.info("data sent to s3 bucket sucessfully")
-               except Exception as e:
-                   return False, e
-           elif provider == "gcp":
-               try:
-                   from airflow.providers.google.cloud.operators.gcs import GCSHook
-   
-                   logging.info(
-                       "Connecting to gcs service to validate bucket connection........"
-                   )
-                   logging.info(f"what comes here as conn_id {conn_id}")
-                   if conn_id == "" or conn_id is None:
-                       logging.info(
-                           "fallback to google connection default connection flow"
-                       )
-                       os.environ["AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT"] = os.getenv(
-                           provider_secret_env_name
-                       )
-                       os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.getenv(
-                           provider_secret_env_name
-                       )
-                       gcsClass = GCSHook()
-                   else:
-                       gcsClass = GCSHook(gcp_conn_id=conn_id)
-                   gcsClass.upload(
-                       bucket_name=bucket_name,
-                       filename=file_path,
-                       object_name=file_name,
-                   )
-               except Exception as e:
-                   return False, e
-           elif provider == "azure":
-               try:
-                   from airflow.providers.microsoft.azure.hooks.wasb import WasbHook
-   
-                   logging.info(
-                       "Connecting to azure blob service to validate bucket connection........"
-                   )
-                   azureClass = WasbHook(wasb_conn_id=conn_id)
-                   with open(file_path, "rb") as f:
-                       azureClass.upload(
-                           container_name=bucket_name,
-                           data=f,
-                           blob_name=file_name,
-                       )
-   
-               except Exception as e:
-                   return False, e
-           elif provider == "local":
-               try:
-                   from shutil import copyfile
-   
-                   logging.info("Connecting to local storage ........")
-                   destPath = os.path.join(f"{bucket_name}", f"{release_name}")
-                   os.makedirs(destPath, exist_ok=True)
-                   copyfile(file_path, f"{bucket_name}/{file_name}")
-               except Exception as e:
-                   return False, e
-           else:
-               raise AirflowException(
-                   f"Cloud Provider {provider} is not supported.supported providers  are aws,gcp,azure,local"
-               )
-           if drop_archives:
-               os.remove(file_path)
-               logging.info("Dropping archived table %s", table_name)
-               session.execute(text(f"DROP TABLE {table_name}"))
-               dropped_count += 1
-       logging.info(
-           "Total exported tables: %s, Total dropped tables: %s",
-           export_count,
-           dropped_count,
-       )
-       return True, ""
+        logging.info("Proceeding with export selection")
+        effective_table_names, _ = _effective_table_names(table_names=table_names)
+        inspector = inspect(session.bind)
+        db_table_names = [
+            x for x in inspector.get_table_names() if x.startswith(ARCHIVE_TABLE_PREFIX)
+        ]
+        export_count = 0
+        dropped_count = 0
+        for table_name in db_table_names:
+            if not any("__" + x + "__" in table_name for x in effective_table_names):
+                continue
+            logging.info("Exporting table %s", table_name)
+            os.makedirs(output_path, exist_ok=True)
+            _dump_table_to_file(
+                target_table=table_name,
+                file_path=os.path.join(output_path, f"{table_name}.{export_format}"),
+                export_format=export_format,
+                session=session,
+            )
+            export_count += 1
+            file_path = os.path.join(output_path, f"{table_name}.{export_format}")
+            file_name = f"{release_name}/{table_name}.{export_format}"
+            if provider == "aws":  # aws , azure, gcp
+                try:
+                    from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+
+                    logging.info(
+                        "Connecting to aws s3 service to validate bucket connection........"
+                    )
+                    s3Class = S3Hook(aws_conn_id=conn_id)
+                    s3Class.check_for_bucket(bucket_name=bucket_name)
+                    with open(file_path, "rb") as f:
+                        s3Class._upload_file_obj(
+                            file_obj=f, key=file_name, bucket_name=bucket_name
+                        )
+                    log.info("Data sent to s3 bucket sucessfully")
+                except Exception as e:
+                    return False, release_name, provider, e
+            elif provider == "gcp":
+                try:
+                    from airflow.providers.google.cloud.operators.gcs import GCSHook
+
+                    logging.info(
+                        "Connecting to gcs service to validate bucket connection........"
+                    )
+                    logging.info(f"what comes here as conn_id {conn_id}")
+                    if conn_id == "" or conn_id is None:
+                        logging.info(
+                            "fallback to google connection default connection flow"
+                        )
+                        os.environ["AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT"] = os.getenv(
+                            provider_secret_env_name
+                        )
+                        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.getenv(
+                            provider_secret_env_name
+                        )
+                        gcsClass = GCSHook()
+                    else:
+                        gcsClass = GCSHook(gcp_conn_id=conn_id)
+                    gcsClass.upload(
+                        bucket_name=bucket_name,
+                        filename=file_path,
+                        object_name=file_name,
+                    )
+                except Exception as e:
+                    return False, release_name, provider, e
+            elif provider == "azure":
+                try:
+                    from airflow.providers.microsoft.azure.hooks.wasb import WasbHook
+
+                    logging.info(
+                        "Connecting to azure blob service to validate bucket connection........"
+                    )
+                    azureClass = WasbHook(wasb_conn_id=conn_id)
+                    with open(file_path, "rb") as f:
+                        azureClass.upload(
+                            container_name=bucket_name,
+                            data=f,
+                            blob_name=file_name,
+                        )
+
+                except Exception as e:
+                    return False, release_name, provider, e
+            elif provider == "local":
+                try:
+                    from shutil import copyfile
+
+                    logging.info("Connecting to local storage ........")
+                    destPath = os.path.join(f"{bucket_name}", f"{release_name}")
+                    os.makedirs(destPath, exist_ok=True)
+                    copyfile(file_path, f"{bucket_name}/{file_name}")
+                except Exception as e:
+                    return False, release_name, provider, e
+            else:
+                raise AirflowException(
+                    f"Cloud Provider {provider} is not supported.supported providers  are aws,gcp,azure,local"
+                )
+            if drop_archives:
+                os.remove(file_path)
+                logging.info("Dropping archived table %s", table_name)
+                session.execute(text(f"DROP TABLE {table_name}"))
+                dropped_count += 1
+        logging.info(
+            "Total exported tables: %s, Total dropped tables: %s",
+            export_count,
+            dropped_count,
+        )
+        return True, release_name, provider, ""
     else:
         logging.info("Skipping export")
-        return False, "skipping export"
+        return False, release_name, provider, "skipping export"
 
 
 # Creating a flask appbuilder BaseView
@@ -330,15 +336,27 @@ class AstronomerDbcleanup(AppBuilderBaseView):
         try:
             dbcleanup_report()
             # Additional function to call export and cleanup from db
-            export, e = _airflow_dbexport()
+            export, release, provider, e = _airflow_dbexport()
             if export:
-                return {"status": "completed"}
+                return {
+                    "deploymentName": f"{release}",
+                    "jobStatus": "success",
+                    "statusCode": 200,
+                    "message": f"{release} data exported to provider {provider} completed",
+                }
             else:
                 return {
-                    "status": f"db cleanup completed export failed with exception {e}"
+                    "deploymentName": f"{release}",
+                    "jobStatus": "failed",
+                    "statusCode": 500,
+                    "message": f"db export failed with exception {e}",
                 }
         except Exception as e:
-            return {"status": f"failed with {e}"}
+            return {
+                "jobStatus": "failed",
+                "statusCode": 500,
+                "message": f"db export failed with exception {e}",
+            }
 
 
 # Defining the plugin class
