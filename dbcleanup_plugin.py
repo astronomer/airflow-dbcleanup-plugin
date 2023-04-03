@@ -152,7 +152,7 @@ def _dump_table_to_file(*, target_table, file_path, export_format, session):
                     break
     else:
         raise AirflowException(
-            f"Export format {export_format} is not supported.Current supported formats are csv"
+            f"Export format {export_format} is not supported. Currently the only supported format is csv."
         )
 
 
