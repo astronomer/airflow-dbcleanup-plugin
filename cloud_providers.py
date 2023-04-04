@@ -41,9 +41,8 @@ def GcsCloudProvider(
         from airflow.providers.google.cloud.operators.gcs import GCSHook
 
         logging.info("Connecting to gcs service to validate bucket connection........")
-        logging.info(f"what comes here as conn_id {conn_id}")
         if conn_id == "" or conn_id is None:
-            logging.info("relying on google connection default logic")
+            logging.info("fallback to google connection default connection flow")
             os.environ["AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT"] = os.getenv(
                 provider_secret_env_name
             )
