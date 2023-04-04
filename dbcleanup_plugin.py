@@ -19,6 +19,9 @@ from airflow.utils.session import NEW_SESSION, provide_session
 from airflow.utils import db_cleanup, dates
 from airflow.utils.db_cleanup import config_dict
 from airflow.settings import conf
+from airflow.security import permissions
+from airflow.www import auth
+
 from .cloud_providers import (
     AwsCloudProvider,
     AzureCloudProvider,
@@ -26,7 +29,7 @@ from .cloud_providers import (
     LocalCloudProvider,
 )
 
-__version__ = "1.0.3.5.2"
+__version__ = "1.0.0"
 
 log = logging.getLogger(__name__)
 
@@ -295,18 +298,18 @@ class AstronomerDbcleanup(AppBuilderBaseView):
     default_view = "dbcleanup"
 
     @expose("api/v1/dbcleanup", methods=["POST", "GET"])
-    # @auth.has_access(
-    #    [
-    #        (permissions.ACTION_CAN_READ, permissions.RESOURCE_TASK_RESCHEDULE),
-    #        (permissions.ACTION_CAN_ACCESS_MENU, permissions.RESOURCE_TASK_RESCHEDULE),
-    #        (permissions.ACTION_CAN_READ, permissions.RESOURCE_TRIGGER),
-    #        (permissions.ACTION_CAN_ACCESS_MENU, permissions.RESOURCE_TRIGGER),
-    #        (permissions.ACTION_CAN_READ, permissions.RESOURCE_PASSWORD),
-    #        (permissions.ACTION_CAN_EDIT, permissions.RESOURCE_PASSWORD),
-    #        (permissions.ACTION_CAN_READ, permissions.RESOURCE_ROLE),
-    #        (permissions.ACTION_CAN_EDIT, permissions.RESOURCE_ROLE),
-    #    ]
-    # )
+    @auth.has_access(
+        [
+            (permissions.ACTION_CAN_READ, permissions.RESOURCE_TASK_RESCHEDULE),
+            (permissions.ACTION_CAN_ACCESS_MENU, permissions.RESOURCE_TASK_RESCHEDULE),
+            (permissions.ACTION_CAN_READ, permissions.RESOURCE_TRIGGER),
+            (permissions.ACTION_CAN_ACCESS_MENU, permissions.RESOURCE_TRIGGER),
+            (permissions.ACTION_CAN_READ, permissions.RESOURCE_PASSWORD),
+            (permissions.ACTION_CAN_EDIT, permissions.RESOURCE_PASSWORD),
+            (permissions.ACTION_CAN_READ, permissions.RESOURCE_ROLE),
+            (permissions.ACTION_CAN_EDIT, permissions.RESOURCE_ROLE),
+        ]
+    )
     @csrf.exempt
     # disabled jwt auth for rest point
     # @jwt_token_secure
