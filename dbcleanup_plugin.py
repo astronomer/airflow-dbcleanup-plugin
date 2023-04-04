@@ -336,8 +336,8 @@ class AstronomerDbcleanup(AppBuilderBaseView):
         try:
             dbcleanup_report()
             # Additional function to call export and cleanup from db
-            status, release, provider, e = _airflow_dbexport()
-            if status:
+            success, release, provider, e = _airflow_dbexport()
+            if success:
                 res = {
                     "deploymentName": f"{release}",
                     "jobStatus": "success",
