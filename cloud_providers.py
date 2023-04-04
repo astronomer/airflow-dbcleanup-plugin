@@ -10,7 +10,6 @@ def AwsCloudProvider(
     bucket_name,
     file_path,
     file_name,
-    provider_secret_env_name,
     release_name,
 ):
     try:
@@ -68,8 +67,7 @@ def AzureCloudProvider(
     bucket_name,
     file_path,
     file_name,
-    provider_secret_env_name,
-    release_name,
+    release_name
 ):
     try:
         from airflow.providers.microsoft.azure.hooks.wasb import WasbHook

@@ -234,7 +234,6 @@ def export_cleaned_records(
                         bucket_name,
                         file_path,
                         file_name,
-                        provider_secret_env_name,
                         release_name,
                     )
 
@@ -256,7 +255,6 @@ def export_cleaned_records(
                         bucket_name,
                         file_path,
                         file_name,
-                        provider_secret_env_name,
                         release_name,
                     )
 
