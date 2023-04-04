@@ -1,9 +1,10 @@
 import csv
 import os
 import logging
+import json
 from typing import Any
 
-from flask import Blueprint, request
+from flask import Blueprint, request, Response
 from flask_appbuilder import BaseView as AppBuilderBaseView
 from flask_appbuilder import expose
 from flask_login.utils import _get_user
@@ -141,10 +142,9 @@ def _dump_table_to_file(*, target_table, file_path, export_format, session):
     if export_format == "csv":
         cursor = session.execute(text(f"SELECT * FROM {target_table}"))
         batch_size = 5000
-        f = open(file_path, "w").close()
         while True:
             if rows := cursor.fetchmany(batch_size):
-                with open(file_path, "a") as f:
+                with open(file_path, "a+") as f:
                     csv_writer = csv.writer(f)
                     csv_writer.writerow(cursor.keys())
                     csv_writer.writerows(rows)
@@ -336,27 +336,35 @@ class AstronomerDbcleanup(AppBuilderBaseView):
         try:
             dbcleanup_report()
             # Additional function to call export and cleanup from db
-            export, release, provider, e = _airflow_dbexport()
-            if export:
-                return {
+            status, release, provider, e = _airflow_dbexport()
+            if status:
+                res = {
                     "deploymentName": f"{release}",
                     "jobStatus": "success",
                     "statusCode": 200,
                     "message": f"{release} data exported to provider {provider} completed",
                 }
+                response = Response(json.dumps(res), mimetype="application/json")
+                response.status = 200
             else:
-                return {
+                res = {
                     "deploymentName": f"{release}",
                     "jobStatus": "failed",
                     "statusCode": 500,
                     "message": f"db export failed with exception {e}",
                 }
+                response = Response(json.dumps(res), mimetype="application/json")
+                response.status = 500
+            return response
         except Exception as e:
-            return {
+            res = {
                 "jobStatus": "failed",
                 "statusCode": 500,
                 "message": f"db export failed with exception {e}",
             }
+            response = Response(json.dumps(res), mimetype="application/json")
+            response.status = 500
+            return response
 
 
 # Defining the plugin class
