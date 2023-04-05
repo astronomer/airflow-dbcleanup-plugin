@@ -80,7 +80,7 @@ def getboolean(val: str) -> bool:
         return False
     else:
         raise ValueError(
-            f"Failed to convert value to bool. Expected bool but got something else."
+            "Failed to convert value to bool. Expected bool but got something else."
             f'Current value: "{val}".'
         )
 
