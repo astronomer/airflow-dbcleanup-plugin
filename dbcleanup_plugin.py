@@ -158,7 +158,9 @@ def cleanupdb(session, days, dry_run) -> Any:
 
 
 # Adopted most of the work from @ephraimbuddy
-def _dump_table_to_file(*, target_table: str, file_path: str, export_format: str, session) -> None:
+def _dump_table_to_file(
+    *, target_table: str, file_path: str, export_format: str, session
+) -> None:
     """
     Dumps the data from the given database table into a file in the specified export format.
 
@@ -195,6 +197,11 @@ def _dump_table_to_file(*, target_table: str, file_path: str, export_format: str
 
 
 def _effective_table_names(*, table_names: list[str]):
+    """
+    Returns the effective table names and their corresponding configuration based on the given list of table names.
+    If no table names are specified, returns all table names in the global configuration.
+    Raises SystemExit if no valid table names are selected.
+    """
     desired_table_names = set(table_names or config_dict)
     effective_config_dict = {
         k: v for k, v in config_dict.items() if k in desired_table_names
