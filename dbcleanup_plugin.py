@@ -126,6 +126,7 @@ def _airflow_dbexport():
     except ValueError as e:
         log.error(f"Validation Failed for request args: {e}")
         raise e
+
     else:
         return export_cleaned_records(
             export_format=export_format,
