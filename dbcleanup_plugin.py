@@ -236,13 +236,7 @@ def export_cleaned_records(
 ):
     """Export cleaned data to the given output path in the given format."""
     # Logic to send data to cloud storage based on the provider type s3, gcs, azure
-    if deployment_name:
-        release_name = deployment_name
-    else:
-        try:
-            release_name = conf.get("kubernetes_labels", "release")
-        except Exception:
-            release_name = "airflow"
+    release_name = deployment_name or conf.get("kubernetes_labels", "release", fallback="airflow")
     if not dry_run:
         logging.info("Proceeding with export selection")
         effective_table_names, _ = _effective_table_names(table_names=table_names)
