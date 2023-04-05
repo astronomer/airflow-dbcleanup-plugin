@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import inspect, text
 
 from airflow.www.app import csrf
-from airflow import configuration, AirflowException
+from airflow import AirflowException
 from airflow.plugins_manager import AirflowPlugin
 from airflow.utils.session import NEW_SESSION, provide_session
 from airflow.utils import db_cleanup, dates
@@ -53,7 +53,6 @@ bp = Blueprint(
     static_url_path="/static/",
 )
 
-airflow_webserver_base_url = configuration.get("webserver", "BASE_URL")
 ARCHIVE_TABLE_PREFIX = "_airflow_deleted__"
 
 
@@ -236,7 +235,9 @@ def export_cleaned_records(
 ):
     """Export cleaned data to the given output path in the given format."""
     # Logic to send data to cloud storage based on the provider type s3, gcs, azure
-    release_name = deployment_name or conf.get("kubernetes_labels", "release", fallback="airflow")
+    release_name = deployment_name or conf.get(
+        "kubernetes_labels", "release", fallback="airflow"
+    )
     if not dry_run:
         logging.info("Proceeding with export selection")
         effective_table_names, _ = _effective_table_names(table_names=table_names)
