@@ -5,13 +5,27 @@ log = logging.getLogger(__name__)
 
 
 def AwsCloudProvider(
-    provider,
-    conn_id,
-    bucket_name,
-    file_path,
-    file_name,
-    release_name,
-):
+    provider: str,
+    conn_id: str,
+    bucket_name: str,
+    file_path: str,
+    file_name: str,
+    release_name: str,
+) -> tuple:
+    """
+    Uploads a file to an Amazon S3 bucket using the S3Hook class.
+
+    Args:
+        provider (str): The name of the cloud provider. In this case, it should be "aws".
+        conn_id (str): The connection ID for the Amazon Web Services (AWS) account.
+        bucket_name (str): The name of the S3 bucket.
+        file_path (str): The path to the file to be uploaded.
+        file_name (str): The name of the file to be uploaded.
+        release_name (str): The name of the release.
+
+    Returns:
+        tuple: A tuple containing a boolean value indicating success or failure, the release name, the provider, and any exception that occurred.
+    """
     try:
         from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
@@ -28,14 +42,29 @@ def AwsCloudProvider(
 
 
 def GcsCloudProvider(
-    provider,
-    conn_id,
-    bucket_name,
-    file_path,
-    file_name,
-    provider_secret_env_name,
-    release_name,
-):
+    provider: str,
+    conn_id: str,
+    bucket_name: str,
+    file_path: str,
+    file_name: str,
+    provider_secret_env_name: str,
+    release_name: str,
+) -> tuple:
+    """
+    Uploads a file to a Google Cloud Storage (GCS) bucket using the GCSHook class.
+
+    Args:
+        provider (str): The name of the cloud provider. In this case, it should be "gcs".
+        conn_id (str): The connection ID for the Google Cloud Storage (GCS) account.
+        bucket_name (str): The name of the GCS bucket.
+        file_path (str): The path to the file to be uploaded.
+        file_name (str): The name of the file to be uploaded.
+        provider_secret_env_name (str): The name of the environment variable containing the credentials for the GCS account.
+        release_name (str): The name of the release.
+
+    Returns:
+        tuple: A tuple containing a boolean value indicating success or failure, the release name, the provider, and any exception that occurred.
+    """
     try:
         from airflow.providers.google.cloud.operators.gcs import GCSHook
 
@@ -62,13 +91,27 @@ def GcsCloudProvider(
 
 
 def AzureCloudProvider(
-    provider,
-    conn_id,
-    bucket_name,
-    file_path,
-    file_name,
-    release_name
-):
+    provider: str,
+    conn_id: str,
+    bucket_name: str,
+    file_path: str,
+    file_name: str,
+    release_name: str,
+) -> tuple:
+    """
+    Uploads a file to an Azure blob container using the provided connection and credentials.
+
+    Args:
+        provider (str): The name of the cloud provider (Azure in this case).
+        conn_id (str): The connection ID for the Azure blob storage account.
+        bucket_name (str): The name of the blob container where the file will be uploaded.
+        file_path (str): The local path of the file to be uploaded.
+        file_name (str): The name of the file to be uploaded.
+        release_name (str): The name of the release being uploaded.
+
+    Returns:
+        tuple: A tuple containing a boolean indicating if the upload was successful, the name of the release, the name of the cloud provider, and any error message if the upload was unsuccessful.
+    """
     try:
         from airflow.providers.microsoft.azure.hooks.wasb import WasbHook
 
@@ -86,7 +129,22 @@ def AzureCloudProvider(
         return False, release_name, provider, e
 
 
-def LocalCloudProvider(provider, bucket_name, file_path, file_name, release_name):
+def LocalCloudProvider(
+    provider: str, bucket_name: str, file_path: str, file_name: str, release_name: str
+) -> tuple:
+    """
+    Uploads a file to a local directory.
+
+    Args:
+        provider (str): The name of the cloud provider (Local in this case).
+        bucket_name (str): The name of the local directory where the file will be uploaded.
+        file_path (str): The local path of the file to be uploaded.
+        file_name (str): The name of the file to be uploaded.
+        release_name (str): The name of the release being uploaded.
+
+    Returns:
+        tuple: A tuple containing a boolean indicating if the upload was successful, the name of the release, the name of the cloud provider, and any error message if the upload was unsuccessful.
+    """
     try:
         from shutil import copyfile
 
