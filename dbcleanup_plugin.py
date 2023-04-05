@@ -59,13 +59,27 @@ ARCHIVE_TABLE_PREFIX = "_airflow_deleted__"
 
 # code sourced from airflow logic
 def getboolean(val: str) -> bool:
+    """
+    Converts a string value to a boolean value.
+    Args:
+        val (str): The string value to be converted to boolean.
+    Returns:
+        bool: The boolean value of the given string.
+    Raises:
+        Exception: If the given string cannot be converted to a boolean.
+    Example:
+        >>> getboolean("True")
+        True
+        >>> getboolean("False")
+        False
+    """
     val = val.lower().strip()
     if val in {"t", "true", "1"}:
         return True
     elif val in {"f", "false", "0"}:
         return False
     else:
-        raise Exception(
+        raise ValueError(
             f"Failed to convert value to bool. Expected bool but got something else."
             f'Current value: "{val}".'
         )
@@ -143,7 +157,25 @@ def cleanupdb(session, days, dry_run) -> Any:
 
 
 # Adopted most of the work from @ephraimbuddy
-def _dump_table_to_file(*, target_table, file_path, export_format, session):
+def _dump_table_to_file(*, target_table: str, file_path: str, export_format: str, session) -> None:
+    """
+    Dumps the data from the given database table into a file in the specified export format.
+
+    Args:
+        target_table (str): The name of the database table to export data from.
+        file_path (str): The path of the file to export the data to.
+        export_format (str): The format in which to export the data. Currently, only 'csv' format is supported.
+        session: A database session object to execute the export query.
+
+    Returns:
+        None
+
+    Raises:
+        AirflowException: If the specified export format is not supported.
+
+    Example usage:
+        _dump_table_to_file(target_table='users', file_path='/path/to/exported_file.csv', export_format='csv', session=db_session)
+    """
     if export_format == "csv":
         cursor = session.execute(text(f"SELECT * FROM {target_table}"))
         batch_size = 5000
