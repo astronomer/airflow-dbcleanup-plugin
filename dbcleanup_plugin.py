@@ -389,8 +389,6 @@ class AstronomerDbcleanup(AppBuilderBaseView):
 # Defining the plugin class
 class AstronomerPlugin(AirflowPlugin):
     name = "Astronomer Dbcleanup"
-    hooks = []
-    macros = []
     flask_blueprints = [bp]
     appbuilder_views = [
         {
