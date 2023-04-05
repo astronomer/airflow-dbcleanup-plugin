@@ -81,11 +81,11 @@ def GcsCloudProvider(
         else:
             logging.info("connecting to google service from conn_id flow")
             gcsClass = GCSHook(gcp_conn_id=conn_id)
-            gcsClass.upload(
-                bucket_name=bucket_name,
-                filename=file_path,
-                object_name=file_name,
-            )
+        gcsClass.upload(
+            bucket_name=bucket_name,
+            filename=file_path,
+            object_name=file_name,
+        )
     except Exception as e:
         return False, release_name, provider, e
 
