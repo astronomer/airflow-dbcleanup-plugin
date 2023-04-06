@@ -48,17 +48,17 @@ class AwsCloudProvider(CloudProvider):
             logging.info(
                 "Connecting to aws s3 service to validate bucket connection........"
             )
-            s3Class = S3Hook(aws_conn_id=self.kwargs["conn_id"])
-            s3Class.check_for_bucket(bucket_name=self.kwargs["bucket_name"])
-            with open(self.kwargs["file_path"], "rb") as f:
+            s3Class = S3Hook(aws_conn_id=kwargs["conn_id"])
+            s3Class.check_for_bucket(bucket_name=kwargs["bucket_name"])
+            with open(kwargs["file_path"], "rb") as f:
                 s3Class._upload_file_obj(
                     file_obj=f,
-                    key=self.kwargs["file_name"],
-                    bucket_name=self.kwargs["bucket_name"],
+                    key=kwargs["file_name"],
+                    bucket_name=kwargs["bucket_name"],
                 )
             log.info("data sent to s3 bucket sucessfully")
         except Exception as e:
-            return False, self.kwargs["release_name"], self.provider, e
+            return False, kwargs["release_name"], self.provider, e
 
 class GcsCloudProvider(CloudProvider):
 
