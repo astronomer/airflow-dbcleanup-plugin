@@ -22,12 +22,7 @@ from airflow.settings import conf
 from airflow.security import permissions
 from airflow.www import auth
 
-from .cloud_providers import (
-    AwsCloudProvider,
-    AzureCloudProvider,
-    GcsCloudProvider,
-    LocalCloudProvider,
-)
+from .cloud_providers import ProviderFactory
 
 __version__ = "1.0.0"
 
@@ -178,21 +173,17 @@ def _dump_table_to_file(
     Example usage:
         _dump_table_to_file(target_table='users', file_path='/path/to/exported_file.csv', export_format='csv', session=db_session)
     """
-    if export_format == "csv":
-        cursor = session.execute(text(f"SELECT * FROM {target_table}"))
-        batch_size = 5000
-        while True:
-            if rows := cursor.fetchmany(batch_size):
-                with open(file_path, "a+") as f:
-                    csv_writer = csv.writer(f)
-                    csv_writer.writerow(cursor.keys())
-                    csv_writer.writerows(rows)
-            else:
-                break
-    else:
+    if export_format != "csv":
         raise AirflowException(
-            f"Export format {export_format} is not supported.Currently supported formats are csv"
+            f"Export format {export_format} is not supported. Currently supported formats is csv"
         )
+    cursor = session.execute(text(f"SELECT * FROM {target_table}"))
+    batch_size = 5000
+    while rows := cursor.fetchmany(batch_size):
+        with open(file_path, "a+") as f:
+            csv_writer = csv.writer(f)
+            csv_writer.writerow(cursor.keys())
+            csv_writer.writerows(rows)
 
 
 def _effective_table_names(*, table_names: list[str]):
@@ -248,7 +239,7 @@ def export_cleaned_records(
         export_count = 0
         dropped_count = 0
         for table_name in db_table_names:
-            if not any("__" + x + "__" in table_name for x in effective_table_names):
+            if all( f"__{x}__" not in table_name for x in effective_table_names):
                 continue
             logging.info("Exporting table %s", table_name)
             os.makedirs(output_path, exist_ok=True)
@@ -261,54 +252,20 @@ def export_cleaned_records(
             export_count += 1
             file_path = os.path.join(output_path, f"{table_name}.{export_format}")
             file_name = f"{release_name}/{table_name}.{export_format}"
-            try:
-                if provider == "aws":
-                    status, release_name, provider, e = AwsCloudProvider(
-                        provider,
-                        conn_id,
-                        bucket_name,
-                        file_path,
-                        file_name,
-                        release_name,
-                    )
-
-                elif provider == "gcp":
-                    status, release_name, provider, e = GcsCloudProvider(
-                        provider,
-                        conn_id,
-                        bucket_name,
-                        file_path,
-                        file_name,
-                        provider_secret_env_name,
-                        release_name,
-                    )
-
-                elif provider == "azure":
-                    status, release_name, provider, e = AzureCloudProvider(
-                        provider,
-                        conn_id,
-                        bucket_name,
-                        file_path,
-                        file_name,
-                        release_name,
-                    )
-
-                elif provider == "local":
-                    status, release_name, provider, e = LocalCloudProvider(
-                        provider,
-                        bucket_name,
-                        file_path,
-                        file_name,
-                        release_name,
-                    )
-                else:
-                    raise AirflowException(
-                        f"Cloud Provider {provider} is not supported.supported providers  are aws,gcp,azure,local"
-                    )
-                if not status:
-                    raise Exception(e)
-            except Exception as e:
-                logging.error(f"An error occurred: {e}")
+            if provider not in ProviderFactory.keys():
+                raise AirflowException(
+                    f"Provider {provider} is not supported. Currently supported providers are aws, gcs, azure and local"
+                )
+            provider = ProviderFactory[provider](provider)
+            status, release_name, provider, e = provider.upload(
+                conn_id=conn_id,
+                bucket_name=bucket_name,
+                file_path=file_path,
+                file_name=file_name,
+                provider_secret_env_name=provider_secret_env_name,
+                release_name=release_name,
+            )
+            if not status:
                 return False, release_name, provider, e
             if drop_archives:
                 os.remove(file_path)
