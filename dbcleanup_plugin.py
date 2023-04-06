@@ -239,7 +239,7 @@ def export_cleaned_records(
         export_count = 0
         dropped_count = 0
         for table_name in db_table_names:
-            if all( f"__{x}__" not in table_name for x in effective_table_names):
+            if all(f"__{x}__" not in table_name for x in effective_table_names):
                 continue
             logging.info("Exporting table %s", table_name)
             os.makedirs(output_path, exist_ok=True)

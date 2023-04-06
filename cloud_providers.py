@@ -3,6 +3,8 @@ import logging
 import shutil
 
 log = logging.getLogger(__name__)
+
+
 class CloudProvider:
     def __init__(self, provider: str, **kwargs):
         """
@@ -14,7 +16,7 @@ class CloudProvider:
         """
         self.provider = provider
         self.kwargs = kwargs
-    
+
     def upload(self) -> tuple:
         """
         Uploads a file to a cloud provider.
@@ -23,6 +25,7 @@ class CloudProvider:
             tuple: A tuple containing a boolean value indicating success or failure, the release name, the provider, and any exception that occurred.
         """
         raise NotImplementedError
+
 
 class AwsCloudProvider(CloudProvider):
     def __init__(self, provider: str, **kwargs):
@@ -60,8 +63,8 @@ class AwsCloudProvider(CloudProvider):
         except Exception as e:
             return False, kwargs["release_name"], self.provider, e
 
-class GcsCloudProvider(CloudProvider):
 
+class GcsCloudProvider(CloudProvider):
     def __init__(self, provider: str, **kwargs):
         """
         Initializes the GcsCloudProvider class.
@@ -71,7 +74,7 @@ class GcsCloudProvider(CloudProvider):
             **kwargs: Arbitrary keyword arguments.
         """
         super().__init__(provider, **kwargs)
-    
+
     def upload(self, **kwargs) -> tuple:
         """
         Uploads a file to a Google Cloud Storage (GCS) bucket using the GCSHook class.
@@ -91,7 +94,9 @@ class GcsCloudProvider(CloudProvider):
         try:
             from airflow.providers.google.cloud.operators.gcs import GCSHook
 
-            logging.info("Connecting to gcs service to validate bucket connection........")
+            logging.info(
+                "Connecting to gcs service to validate bucket connection........"
+            )
             if not kwargs["conn_id"] or kwargs["conn_id"] is None:
                 logging.info("fallback to google connection default connection flow")
                 os.environ["AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT"] = os.getenv(
@@ -111,6 +116,7 @@ class GcsCloudProvider(CloudProvider):
             )
         except Exception as e:
             return False, kwargs["release_name"], self.provider, e
+
 
 class AzureCloudProvider(CloudProvider):
     def __init__(self, provider: str, **kwargs):
@@ -155,6 +161,7 @@ class AzureCloudProvider(CloudProvider):
         except Exception as e:
             return False, kwargs["release_name"], self.provider, e
 
+
 class LocalProvider(CloudProvider):
     def __init__(self, provider: str, **kwargs):
         """
@@ -180,7 +187,7 @@ class LocalProvider(CloudProvider):
             tuple: A tuple containing a boolean value indicating success or failure, the release name, the provider, and any exception that occurred.
         """
         try:
-            tmpfile = os.path.join('/tmp', kwargs["file_name"])
+            tmpfile = os.path.join("/tmp", kwargs["file_name"])
             if not os.path.exists(tmpfile):
                 os.makedirs(os.path.dirname(tmpfile), exist_ok=True)
             shutil.copy(kwargs["file_path"], tmpfile)
@@ -188,6 +195,7 @@ class LocalProvider(CloudProvider):
             return True, kwargs["release_name"], self.provider, None
         except Exception as e:
             return False, kwargs["release_name"], self.provider, e
+
 
 ProviderFactory = {
     "aws": AwsCloudProvider,
