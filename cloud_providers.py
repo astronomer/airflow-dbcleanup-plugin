@@ -199,7 +199,7 @@ class LocalProvider(CloudProvider):
 
 ProviderFactory = {
     "aws": AwsCloudProvider,
-    "gcs": GcsCloudProvider,
+    "gcp": GcsCloudProvider,
     "azure": AzureCloudProvider,
     "local": LocalProvider,
 }

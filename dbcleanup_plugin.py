@@ -254,7 +254,7 @@ def export_cleaned_records(
             file_name = f"{release_name}/{table_name}.{export_format}"
             if provider not in ProviderFactory.keys():
                 raise AirflowException(
-                    f"Provider {provider} is not supported. Currently supported providers are aws, gcs, azure and local"
+                    f"Provider {provider} is not supported. Currently supported providers are aws, gcp, azure and local"
                 )
             provider = ProviderFactory[provider](provider)
             status, release_name, provider, e = provider.upload(
