@@ -2,7 +2,6 @@ import csv
 import os
 import logging
 import json
-from typing import Any
 
 from flask import Blueprint, request, Response
 from flask_appbuilder import BaseView as AppBuilderBaseView
@@ -79,22 +78,10 @@ def getboolean(val: str) -> bool:
         )
 
 
-def dbcleanup_report():
-    validate_days = request.args.get("olderThan", type=int)
-    validate_dry_run = request.args.get("dryRun", type=str, default="True")
-    try:
-        days = int(validate_days)
-        dry_run = getboolean(validate_dry_run)
-
-    except ValueError as e:
-        log.error(f"Validation Failed for request args: {e}")
-        raise e
-    else:
-        return cleanupdb(days=days, dry_run=dry_run)
-
-
 # Added custom export function to be called via endpoint
 def _airflow_dbexport():
+    validate_dry_run = request.args.get("dryRun", type=str, default="True")
+    validate_days = request.args.get("olderThan", type=int)
     validate_export_format = request.args.get("exportFormat", type=str, default="csv")
     validate_output_path = request.args.get("outputPath", type=str, default="/tmp")
     validate_provider = request.args.get("provider", type=str, default="")
@@ -105,8 +92,9 @@ def _airflow_dbexport():
     )
     validate_drop_archives = request.args.get("purgeTable", type=str, default="False")
     validate_deployment_name = request.args.get("deploymentName", type=str, default="")
-    validate_dry_run = request.args.get("dryRun", type=str, default="True")
     try:
+        dry_run = getboolean(validate_dry_run)
+        days = int(validate_days)
         export_format = str(validate_export_format)
         output_path = str(validate_output_path)
         provider = str(validate_provider)
@@ -115,7 +103,6 @@ def _airflow_dbexport():
         deployment_name = str(validate_deployment_name)
         conn_id = str(validate_conn_id)
         provider_secret_env_name = str(validate_provider_secret_env_name)
-        dry_run = getboolean(validate_dry_run)
 
     except ValueError as e:
         log.error(f"Validation Failed for request args: {e}")
@@ -123,6 +110,8 @@ def _airflow_dbexport():
 
     else:
         return export_cleaned_records(
+            dry_run=dry_run,
+            days=days,
             export_format=export_format,
             output_path=output_path,
             drop_archives=drop_archives,
@@ -131,24 +120,7 @@ def _airflow_dbexport():
             provider_secret_env_name=provider_secret_env_name,
             bucket_name=bucket_name,
             deployment_name=deployment_name,
-            dry_run=dry_run,
         )
-
-
-@provide_session
-def cleanupdb(session, days, dry_run) -> Any:
-    if dry_run:
-        logging.info("Performing DBcleanup dry run ...")
-        db_cleanup.run_cleanup(
-            clean_before_timestamp=dates.days_ago(int(days)), dry_run=True
-        )
-        logging.info("DBcleanup dry run completed ")
-    else:
-        logging.info("DBcleanup initiated..... ")
-        db_cleanup.run_cleanup(
-            clean_before_timestamp=dates.days_ago(int(days)), confirm=False
-        )
-        logging.info("DBcleanup completed successfully....")
 
 
 # Adopted most of the work from @ephraimbuddy
@@ -213,6 +185,7 @@ def _effective_table_names(*, table_names: list[str]):
 @provide_session
 def export_cleaned_records(
     dry_run,
+    days,
     export_format,
     output_path,
     provider,
@@ -229,8 +202,17 @@ def export_cleaned_records(
     release_name = deployment_name or conf.get(
         "kubernetes_labels", "release", fallback="airflow"
     )
+    if provider not in ProviderFactory.keys():
+        raise AirflowException(
+            f"Provider {provider} is not supported. Currently supported providers are aws, gcp, azure and local"
+        )
     if not dry_run:
-        logging.info("Proceeding with export selection")
+        logging.info("DBcleanup initiated..... ")
+        db_cleanup.run_cleanup(
+            clean_before_timestamp=dates.days_ago(int(days)), confirm=False
+        )
+        logging.info("DBcleanup completed successfully....")
+        logging.info("DBcleanup proceeding with export selection")
         effective_table_names, _ = _effective_table_names(table_names=table_names)
         inspector = inspect(session.bind)
         db_table_names = [
@@ -252,10 +234,6 @@ def export_cleaned_records(
             export_count += 1
             file_path = os.path.join(output_path, f"{table_name}.{export_format}")
             file_name = f"{release_name}/{table_name}.{export_format}"
-            if provider not in ProviderFactory.keys():
-                raise AirflowException(
-                    f"Provider {provider} is not supported. Currently supported providers are aws, gcp, azure and local"
-                )
             provider = ProviderFactory[provider](provider)
             status, release_name, provider, e = provider.upload(
                 conn_id=conn_id,
@@ -279,7 +257,11 @@ def export_cleaned_records(
         )
         return True, release_name, provider, ""
     else:
-        logging.info("Skipping export")
+        logging.info("Performing DBcleanup dry run ...")
+        db_cleanup.run_cleanup(
+            clean_before_timestamp=dates.days_ago(int(days)), dry_run=True
+        )
+        logging.info("DBcleanup dry run completed ")
         return False, release_name, provider, "skipping export"
 
 
@@ -305,8 +287,6 @@ class AstronomerDbcleanup(AppBuilderBaseView):
     # @jwt_token_secure
     def tasks(self):
         try:
-            dbcleanup_report()
-            # Additional function to call export and cleanup from db
             success, release, provider, e = _airflow_dbexport()
             if success:
                 res = {

@@ -60,6 +60,7 @@ class AwsCloudProvider(CloudProvider):
                     bucket_name=kwargs["bucket_name"],
                 )
             log.info("data sent to s3 bucket sucessfully")
+            return True, kwargs["release_name"], self.provider, None
         except Exception as e:
             return False, kwargs["release_name"], self.provider, e
 
@@ -114,6 +115,7 @@ class GcsCloudProvider(CloudProvider):
                 filename=kwargs["file_path"],
                 object_name=kwargs["file_name"],
             )
+            return True, kwargs["release_name"], self.provider, None
         except Exception as e:
             return False, kwargs["release_name"], self.provider, e
 
@@ -158,6 +160,7 @@ class AzureCloudProvider(CloudProvider):
                     data=f,
                     blob_name=kwargs["file_name"],
                 )
+            return True, kwargs["release_name"], self.provider, None
         except Exception as e:
             return False, kwargs["release_name"], self.provider, e
 
@@ -187,11 +190,13 @@ class LocalProvider(CloudProvider):
             tuple: A tuple containing a boolean value indicating success or failure, the release name, the provider, and any exception that occurred.
         """
         try:
-            tmpfile = os.path.join("/tmp", kwargs["file_name"])
-            if not os.path.exists(tmpfile):
-                os.makedirs(os.path.dirname(tmpfile), exist_ok=True)
-            shutil.copy(kwargs["file_path"], tmpfile)
-            logging.debug(f"File copied to {tmpfile}")
+            destinationPath = os.path.join(
+                "/tmp", kwargs["bucket_name"], kwargs["file_name"]
+            )
+            if not os.path.exists(destinationPath):
+                os.makedirs(os.path.dirname(destinationPath), exist_ok=True)
+            shutil.copy(kwargs["file_path"], destinationPath)
+            logging.debug(f"File copied to {destinationPath}")
             return True, kwargs["release_name"], self.provider, None
         except Exception as e:
             return False, kwargs["release_name"], self.provider, e
