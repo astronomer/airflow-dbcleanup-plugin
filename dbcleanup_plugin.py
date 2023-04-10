@@ -92,6 +92,7 @@ def _airflow_dbexport():
     )
     validate_drop_archives = request.args.get("purgeTable", type=str, default="False")
     validate_deployment_name = request.args.get("deploymentName", type=str, default="")
+    validate_table_names = request.args.getlist("tableNames")
     try:
         dry_run = getboolean(validate_dry_run)
         days = int(validate_days)
@@ -103,6 +104,7 @@ def _airflow_dbexport():
         deployment_name = str(validate_deployment_name)
         conn_id = str(validate_conn_id)
         provider_secret_env_name = str(validate_provider_secret_env_name)
+        validate_table_names = list(validate_table_names)
 
     except ValueError as e:
         log.error(f"Validation Failed for request args: {e}")
@@ -120,6 +122,7 @@ def _airflow_dbexport():
             provider_secret_env_name=provider_secret_env_name,
             bucket_name=bucket_name,
             deployment_name=deployment_name,
+            table_names=validate_table_names,
         )
 
 
@@ -176,7 +179,7 @@ def _effective_table_names(*, table_names: list[str]):
             sorted(outliers),
         )
     if not effective_table_names:
-        raise SystemExit(
+        raise AirflowException(
             "No tables selected for DBcleanup. Please choose valid table names."
         )
     return effective_table_names, effective_config_dict
@@ -194,7 +197,7 @@ def export_cleaned_records(
     provider_secret_env_name,
     drop_archives,
     deployment_name,
-    table_names=None,
+    table_names,
     session: Session = NEW_SESSION,
 ):
     """Export cleaned data to the given output path in the given format."""
@@ -209,7 +212,9 @@ def export_cleaned_records(
     if not dry_run:
         logging.info("DBcleanup initiated..... ")
         db_cleanup.run_cleanup(
-            clean_before_timestamp=dates.days_ago(int(days)), confirm=False
+            clean_before_timestamp=dates.days_ago(int(days)),
+            table_names=table_names,
+            confirm=False,
         )
         logging.info("DBcleanup completed successfully....")
         logging.info("DBcleanup proceeding with export selection")
@@ -259,7 +264,9 @@ def export_cleaned_records(
     else:
         logging.info("Performing DBcleanup dry run ...")
         db_cleanup.run_cleanup(
-            clean_before_timestamp=dates.days_ago(int(days)), dry_run=True
+            clean_before_timestamp=dates.days_ago(int(days)),
+            dry_run=True,
+            table_names=table_names,
         )
         logging.info("DBcleanup dry run completed ")
         return False, release_name, provider, "skipping export"
