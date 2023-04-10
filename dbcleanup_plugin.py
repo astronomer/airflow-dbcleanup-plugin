@@ -249,7 +249,7 @@ def export_cleaned_records(
                 release_name=release_name,
             )
             if not status:
-                return False, release_name, provider, e
+                return False, release_name, provider, e, ""
             if drop_archives:
                 os.remove(file_path)
                 logging.info("Dropping archived table %s", table_name)
@@ -260,7 +260,14 @@ def export_cleaned_records(
             export_count,
             dropped_count,
         )
-        return True, release_name, provider, ""
+
+        return (
+            True,
+            release_name,
+            provider,
+            "",
+            f"{release_name} data exported to provider {provider} completed" "",
+        )
     else:
         logging.info("Performing DBcleanup dry run ...")
         db_cleanup.run_cleanup(
@@ -269,7 +276,13 @@ def export_cleaned_records(
             table_names=table_names,
         )
         logging.info("DBcleanup dry run completed ")
-        return False, release_name, provider, "skipping export"
+        return (
+            True,
+            release_name,
+            provider,
+            "skipping export",
+            f"skipping export for {release_name} as dry run is enabled",
+        )
 
 
 # Creating a flask appbuilder BaseView
@@ -294,13 +307,13 @@ class AstronomerDbcleanup(AppBuilderBaseView):
     # @jwt_token_secure
     def tasks(self):
         try:
-            success, release, provider, e = _airflow_dbexport()
+            success, release, provider, e, msg = _airflow_dbexport()
             if success:
                 res = {
                     "deploymentName": f"{release}",
                     "jobStatus": "success",
                     "statusCode": 200,
-                    "message": f"{release} data exported to provider {provider} completed",
+                    "message": msg,
                 }
                 response = Response(json.dumps(res), mimetype="application/json")
                 response.status = 200
