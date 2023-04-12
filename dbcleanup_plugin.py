@@ -264,6 +264,7 @@ def export_cleaned_records(
             export_count += 1
             file_path = os.path.join(output_path, f"{table_name}.{export_format}")
             file_name = f"{release_name}/{table_name}.{export_format}"
+            provider = ProviderFactory[provider](provider)
             status, release_name, provider, e = provider.upload(
                 conn_id=conn_id,
                 bucket_name=bucket_name,
