@@ -126,6 +126,11 @@ def _airflow_dbexport():
         )
 
 
+def create_folder(folder_path: str):
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path, exist_ok=True)
+
+
 # Adopted most of the work from @ephraimbuddy
 def _dump_table_to_file(
     *, target_table: str, file_path: str, export_format: str, session
@@ -209,6 +214,26 @@ def export_cleaned_records(
         raise AirflowException(
             f"Provider {provider} is not supported. Currently supported providers are aws, gcp, azure and local"
         )
+    create_folder(output_path)
+    file_name = "verify.txt"
+    file_path = os.path.join(output_path, f"{file_name}")
+    file_name = f"{release_name}/{file_name}"
+    with open(file_path, "w") as file:
+        data = f"Adding demo content for {release_name} to verfiy bucket existence "
+        file.write(data)
+    provider = ProviderFactory[provider](provider)
+    status, release_name, provider, e = provider.upload(
+        conn_id=conn_id,
+        bucket_name=bucket_name,
+        file_path=file_path,
+        file_name=file_name,
+        provider_secret_env_name=provider_secret_env_name,
+        release_name=release_name,
+    )
+
+    if not status:
+        return False, release_name, provider, e, "Failed to verify provider credentials"
+
     if not dry_run:
         logging.info("DBcleanup initiated..... ")
         db_cleanup.run_cleanup(
@@ -239,7 +264,6 @@ def export_cleaned_records(
             export_count += 1
             file_path = os.path.join(output_path, f"{table_name}.{export_format}")
             file_name = f"{release_name}/{table_name}.{export_format}"
-            provider = ProviderFactory[provider](provider)
             status, release_name, provider, e = provider.upload(
                 conn_id=conn_id,
                 bucket_name=bucket_name,
