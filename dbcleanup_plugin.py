@@ -81,7 +81,7 @@ def getboolean(val: str) -> bool:
 # Added custom export function to be called via endpoint
 def _airflow_dbexport():
     validate_dry_run = request.args.get("dryRun", type=str, default="True")
-    validate_days = request.args.get("olderThan", type=int)
+    validate_days = abs(request.args.get("olderThan", type=int))
     validate_export_format = request.args.get("exportFormat", type=str, default="csv")
     validate_output_path = request.args.get("outputPath", type=str, default="/tmp")
     validate_provider = request.args.get("provider", type=str, default="")
@@ -92,7 +92,11 @@ def _airflow_dbexport():
     )
     validate_drop_archives = request.args.get("purgeTable", type=str, default="False")
     validate_deployment_name = request.args.get("deploymentName", type=str, default="")
-    validate_table_names = request.args.getlist("tableNames")
+    validate_table_names = [
+        x.strip()
+        for x in request.args.get("tableNames", default="").split(",")
+        if x.strip() != ""
+    ]
     try:
         dry_run = getboolean(validate_dry_run)
         days = int(validate_days)
@@ -104,13 +108,16 @@ def _airflow_dbexport():
         deployment_name = str(validate_deployment_name)
         conn_id = str(validate_conn_id)
         provider_secret_env_name = str(validate_provider_secret_env_name)
-        validate_table_names = list(validate_table_names)
+        table_names = list(validate_table_names)
 
     except ValueError as e:
         log.error(f"Validation Failed for request args: {e}")
         raise e
 
     else:
+        log.info(
+            f"User passing values to export function dry_run : {dry_run}, days: {days}, export_format: {export_format}, output_path: {output_path}, provider_name: {provider}, bucket_name: {bucket_name}, drop_archives: {drop_archives}, deployment_name: {deployment_name}, conn_id: {conn_id}, provider_secret_env: {provider_secret_env_name}, table_names: {table_names}"
+        )
         return export_cleaned_records(
             dry_run=dry_run,
             days=days,
@@ -122,7 +129,7 @@ def _airflow_dbexport():
             provider_secret_env_name=provider_secret_env_name,
             bucket_name=bucket_name,
             deployment_name=deployment_name,
-            table_names=validate_table_names,
+            table_names=table_names,
         )
 
 
@@ -172,7 +179,10 @@ def _effective_table_names(*, table_names: list[str]):
     If no table names are specified, returns all table names in the global configuration.
     Raises SystemExit if no valid table names are selected.
     """
-    desired_table_names = set(table_names or config_dict)
+    desired_table_names = set(
+        table_names if len(table_names) > 0 else config_dict.keys()
+    )
+    # desired_table_names = set(table_names or config_dict)
     effective_config_dict = {
         k: v for k, v in config_dict.items() if k in desired_table_names
     }
@@ -221,14 +231,15 @@ def export_cleaned_records(
     with open(file_path, "w") as file:
         data = f"Adding demo content for {release_name} to verfiy bucket existence "
         file.write(data)
-    provider = ProviderFactory[provider](provider)
-    status, release_name, provider, e = provider.upload(
+    provider_base = ProviderFactory[provider](provider)
+    status, release_name, provider, e = provider_base.upload(
         conn_id=conn_id,
         bucket_name=bucket_name,
         file_path=file_path,
         file_name=file_name,
         provider_secret_env_name=provider_secret_env_name,
         release_name=release_name,
+        replace=True,
     )
 
     if not status:

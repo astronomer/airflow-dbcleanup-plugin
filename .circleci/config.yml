@@ -24,4 +24,3 @@ jobs:
       - run:
           name: Run pre-commit
           command: pre-commit run --all-files --show-diff-on-failure
-
