@@ -58,6 +58,7 @@ class AwsCloudProvider(CloudProvider):
                     file_obj=f,
                     key=kwargs["file_name"],
                     bucket_name=kwargs["bucket_name"],
+                    replace=kwargs["replace"] or False,
                 )
             log.info("data sent to s3 bucket sucessfully")
             return True, kwargs["release_name"], self.provider, None
