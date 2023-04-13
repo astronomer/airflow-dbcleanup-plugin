@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   run_pre_commit:
     docker:
-      - image: quay.io/astronomer/ci-pre-commit:2022-12
+      - image: quay.io/astronomer/ci-pre-commit:2023-04
     steps:
       - checkout
       - run:
