@@ -175,7 +175,7 @@ def _dump_table_to_file(
 
 def _effective_table_names(*, table_names: list[str]):
     """
-    Returns the effective table names and their corresponding configuration based on the given list of table names.
+    Return the effective table names and their corresponding configuration based on the given list of table names.
     If no table names are specified, returns all table names in the global configuration.
     Raises SystemExit if no valid table names are selected.
     """
