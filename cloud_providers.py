@@ -109,7 +109,7 @@ class GcsCloudProvider(CloudProvider):
                 )
                 gcsClass = GCSHook()
             else:
-                logging.info("connecting to google service from conn_id flow")
+                logging.info("Connecting to google service using conn_id flow")
                 gcsClass = GCSHook(gcp_conn_id=kwargs["conn_id"])
             gcsClass.upload(
                 bucket_name=kwargs["bucket_name"],
