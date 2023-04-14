@@ -1,0 +1,39 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+      - id: trailing-whitespace
+  - repo: https://github.com/detailyang/pre-commit-shell
+    rev: 1.0.5
+    hooks:
+      - id: shell-lint
+  - repo: https://github.com/astronomer/pre-commit-hooks
+    rev: bd325c947efcba13c03b4f4c93d882f2f83ed6ff
+    hooks:
+      - id: remove-en-dashes
+      - id: remove-unicode-non-breaking-spaces
+      - id: remove-unicode-zero-width-non-breaking-spaces
+      - id: remove-unicode-zero-width-space
+  - repo: https://github.com/psf/black
+    rev: 23.1.0
+    hooks:
+      - id: black
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: "v0.0.261"
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix, --ignore, E501]
+  - repo: https://github.com/astronomer/pre-commit-hooks
+    rev: bd325c947efcba13c03b4f4c93d882f2f83ed6ff
+    hooks:
+      - id: remove-en-dashes
+      - id: remove-unicode-non-breaking-spaces
+      - id: remove-unicode-zero-width-non-breaking-spaces
+      - id: remove-unicode-zero-width-space
