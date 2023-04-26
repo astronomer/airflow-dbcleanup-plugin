@@ -13,7 +13,7 @@ class env_check(object):
             response.status_code = 501
             return response
 
-        if os.environ.get(self.env_var) == "software":
+        if  os.environ.get(self.env_var) is None or os.environ.get(self.env_var) == "software":
             return f
         print(f"{self.env_var} not supplied, {f.__name__} route disabled")
         return g
