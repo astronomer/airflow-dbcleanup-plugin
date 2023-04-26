@@ -22,7 +22,7 @@ from airflow.www import auth
 
 from .cloud_providers import ProviderFactory
 
-__version__ = "1.0.1"
+__version__ = "1.0.0"
 
 log = logging.getLogger(__name__)
 
@@ -326,11 +326,6 @@ class AstronomerDbcleanup(AppBuilderBaseView):
     default_view = "dbcleanup"
     csrf_exempt = False
     base_permissions = ["can_access_dbcleanup"]
-    # A bug in Flask-AppBuilder mandates us to have a value for method_permission_name
-    # before is_item_public filter can be used.
-    method_permission_name = {
-        "access_dbcleanup": "access_dbcleanup",
-    }
     allow_browser_login = True
 
     @expose("api/v1/dbcleanup", methods=["POST", "GET"])
