@@ -1,6 +1,6 @@
-# Airflow Plugin [Document In Progress]#
+# astronomer-airflow-dbcleanup-plugin
 
-This is an [Airflow plugin](https://airflow.apache.org/docs/apache-airflow/stable/plugins.html) that queries the Airflow metadata database and performs task cleanup at an HTTP endpoint.
+An Apache Airflow plugin that exposes an rest endpoint to perform cleanup on airflow tables.
 
 ## How do I test this repo
 
@@ -14,8 +14,6 @@ You must have the astro CLI installed.
    cp *.py plugins/astronomer_dbcleanup_plugin/
    ```
 4. Run `astro dev start`
-   ```
-
 
 ## Publishing new packages to GitHub
 
