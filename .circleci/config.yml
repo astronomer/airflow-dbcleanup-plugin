@@ -24,3 +24,7 @@ jobs:
       - run:
           name: Run pre-commit
           command: pre-commit run --all-files --show-diff-on-failure
+workflows:
+  test:
+    jobs:
+      - run_pre_commit
