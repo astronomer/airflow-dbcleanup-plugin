@@ -1,5 +1,6 @@
-from flask import jsonify
+from flask import Response
 import os
+import json
 
 
 class env_check(object):
@@ -8,12 +9,19 @@ class env_check(object):
 
     def __call__(self, f):
         def g(*args, **kwargs):
-            error_message = f"Not Implemented, {self.env_var} not configured"
-            response = jsonify(error=error_message)
+            res = {
+                "jobStatus": "failed",
+                "statusCode": 501,
+                "message": "This feature is only supported on Astronomer Software and Astronomer Nebula",
+            }
+            response = Response(json.dumps(res), mimetype="application/json")
             response.status_code = 501
             return response
 
-        if  os.environ.get(self.env_var) is None or os.environ.get(self.env_var) == "software":
+        if (
+            os.environ.get(self.env_var) is None
+            or os.environ.get(self.env_var) == "software"
+        ):
             return f
-        print(f"{self.env_var} not supplied, {f.__name__} route disabled")
+        print(f"Feature not implemented,{f.__name__} route disabled")
         return g
