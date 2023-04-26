@@ -1,0 +1,4 @@
+import os
+
+ASTRONOMER_ENVIRONMENT = os.environ.get("ASTRONOMER_ENVIRONMENT", "cloud")
+ASTRONOMER_RUNTIME_VERSION = os.environ.get("ASTRONOMER_RUNTIME_VERSION", "Unknown")

@@ -22,6 +22,7 @@ from airflow.security import permissions
 from airflow.www import auth
 
 from .cloud_providers import ProviderFactory
+from .utils import env_check
 
 __version__ = "1.0.0"
 
@@ -326,6 +327,7 @@ class AstronomerDbcleanup(AppBuilderBaseView):
     default_view = "dbcleanup"
 
     @expose("api/v1/dbcleanup", methods=["POST", "GET"])
+    @env_check("ASTRONOMER_ENVIRONMENT")
     @auth.has_access(
         [
             (permissions.ACTION_CAN_READ, permissions.RESOURCE_TASK_RESCHEDULE),
