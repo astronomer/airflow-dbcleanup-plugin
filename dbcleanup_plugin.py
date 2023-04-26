@@ -22,7 +22,6 @@ from airflow.security import permissions
 from airflow.www import auth
 
 from .cloud_providers import ProviderFactory
-from .environment import ASTRONOMER_ENVIRONMENT,ASTRONOMER_RUNTIME_VERSION
 from .utils import env_check
 
 __version__ = "1.0.0"
