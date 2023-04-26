@@ -21,6 +21,7 @@ from airflow.settings import conf
 from airflow.www import auth
 
 from .cloud_providers import ProviderFactory
+from .utils import env_check
 
 __version__ = "1.0.0"
 
@@ -329,6 +330,7 @@ class AstronomerDbcleanup(AppBuilderBaseView):
     allow_browser_login = True
 
     @expose("api/v1/dbcleanup", methods=["POST", "GET"])
+    @env_check("ASTRONOMER_ENVIRONMENT")
     @auth.has_access(
         [
             ("can_access_dbcleanup", "AstronomerDbcleanup"),
