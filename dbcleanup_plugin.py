@@ -18,7 +18,6 @@ from airflow.utils.session import NEW_SESSION, provide_session
 from airflow.utils import db_cleanup, dates
 from airflow.utils.db_cleanup import config_dict
 from airflow.settings import conf
-from airflow.security import permissions
 from airflow.www import auth
 
 from .cloud_providers import ProviderFactory
@@ -324,25 +323,20 @@ def export_cleaned_records(
 
 # Creating a flask appbuilder BaseView
 class AstronomerDbcleanup(AppBuilderBaseView):
+    resource_name = "dbcleanup"
     default_view = "dbcleanup"
+    csrf_exempt = False
+    base_permissions = ["can_access_dbcleanup"]
+    allow_browser_login = True
 
     @expose("api/v1/dbcleanup", methods=["POST", "GET"])
     @env_check("ASTRONOMER_ENVIRONMENT")
     @auth.has_access(
         [
-            (permissions.ACTION_CAN_READ, permissions.RESOURCE_TASK_RESCHEDULE),
-            (permissions.ACTION_CAN_ACCESS_MENU, permissions.RESOURCE_TASK_RESCHEDULE),
-            (permissions.ACTION_CAN_READ, permissions.RESOURCE_TRIGGER),
-            (permissions.ACTION_CAN_ACCESS_MENU, permissions.RESOURCE_TRIGGER),
-            (permissions.ACTION_CAN_READ, permissions.RESOURCE_PASSWORD),
-            (permissions.ACTION_CAN_EDIT, permissions.RESOURCE_PASSWORD),
-            (permissions.ACTION_CAN_READ, permissions.RESOURCE_ROLE),
-            (permissions.ACTION_CAN_EDIT, permissions.RESOURCE_ROLE),
+            ("can_access_dbcleanup", "AstronomerDbcleanup"),
         ]
     )
     @csrf.exempt
-    # disabled jwt auth for rest point
-    # @jwt_token_secure
     def tasks(self):
         try:
             success, release, provider, e, msg = _airflow_dbexport()
