@@ -14,8 +14,6 @@ You must have the astro CLI installed.
    cp *.py plugins/astronomer_dbcleanup_plugin/
    ```
 4. Run `astro dev start`
-   ```
-
 
 ## Publishing new packages to GitHub
 
