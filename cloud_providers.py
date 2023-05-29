@@ -100,13 +100,26 @@ class GcsCloudProvider(CloudProvider):
                 "Connecting to gcs service to validate bucket connection........"
             )
             if not kwargs["conn_id"] or kwargs["conn_id"] is None:
-                logging.info("fallback to google connection default connection flow")
-                os.environ["AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT"] = os.getenv(
-                    kwargs["provider_secret_env_name"]
-                )
-                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.getenv(
-                    kwargs["provider_secret_env_name"]
-                )
+                if (
+                    os.getenv(kwargs["provider_secret_env_name"])
+                    == "google-cloud-platform://"
+                ):
+                    logging.info(
+                        "configuring workload identity for  google connection flow"
+                    )
+                    os.environ[
+                        "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT"
+                    ] = "google-cloud-platform://"
+                else:
+                    logging.info(
+                        "fallback to google connection default connection flow"
+                    )
+                    os.environ["AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT"] = os.getenv(
+                        kwargs["provider_secret_env_name"]
+                    )
+                    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.getenv(
+                        kwargs["provider_secret_env_name"]
+                    )
                 gcsClass = GCSHook()
             else:
                 logging.info("Connecting to google service using conn_id flow")
