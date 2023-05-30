@@ -122,8 +122,18 @@ class GcsCloudProvider(CloudProvider):
                     )
                 gcsClass = GCSHook()
             else:
-                logging.info("Connecting to google service using conn_id flow")
-                gcsClass = GCSHook(gcp_conn_id=kwargs["conn_id"])
+                logging.info(
+                    "Connecting to google service using conn_id flow for workload identity"
+                )
+                if kwargs["conn_id"] == "google-cloud-platform://":
+                    logging.info("configuring workload identity for conn_id flow")
+                    os.environ[
+                        "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT"
+                    ] = "google-cloud-platform://"
+                    gcsClass = GCSHook()
+                else:
+                    logging.info("Connecting to google service using conn_id flow")
+                    gcsClass = GCSHook(gcp_conn_id=kwargs["conn_id"])
             gcsClass.upload(
                 bucket_name=kwargs["bucket_name"],
                 filename=kwargs["file_path"],
