@@ -229,7 +229,7 @@ def export_cleaned_records(
     file_path = os.path.join(output_path, f"{file_name}")
     file_name = f"{release_name}/{file_name}"
     with open(file_path, "w") as file:
-        data = f"Adding demo content for {release_name} to verfiy bucket existence "
+        data = f"Adding demo content for {release_name} to verify bucket existence"
         file.write(data)
     provider_base = ProviderFactory[provider](provider)
     status, release_name, provider, e = provider_base.upload(
