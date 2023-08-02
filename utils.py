@@ -1,9 +1,6 @@
 from flask import Response
 import os
 import json
-import logging
-
-log = logging.getLogger(__name__)
 
 
 class env_check(object):
@@ -26,5 +23,4 @@ class env_check(object):
             or os.environ.get(self.env_var) == "software"
         ):
             return f
-        logging.info(f"Feature not implemented,{f.__name__} route disabled")
         return g
