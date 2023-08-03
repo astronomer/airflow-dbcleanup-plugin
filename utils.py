@@ -23,5 +23,4 @@ class env_check(object):
             or os.environ.get(self.env_var) == "software"
         ):
             return f
-        print(f"Feature not implemented,{f.__name__} route disabled")
         return g
