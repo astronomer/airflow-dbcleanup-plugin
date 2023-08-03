@@ -24,7 +24,7 @@ from airflow.www import auth
 from .cloud_providers import ProviderFactory
 from .utils import env_check
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 
 log = logging.getLogger(__name__)
 
