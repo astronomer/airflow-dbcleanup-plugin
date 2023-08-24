@@ -29,10 +29,3 @@ Supported Arguments
 | bucketName   | param to pass cloud storage bucket name         |
 | purgeTable   | param to cleanup tables, exported data in tmp location after archival. Default False        |
 | deploymentName   | param to pass custom deployment name        |
-
-
-![Alt text](Untitled.png)
-
-
-Step 3: 
-![Alt text](<Untitled (1).png>)
