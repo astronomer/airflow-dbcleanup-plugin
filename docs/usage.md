@@ -1,3 +1,8 @@
+Airflow Rest Based cleanup plugin to cleanup and archieve metadata table 
+
+
+Supported Arguments
+
 | Argument      | Description |
 | ----------- | ----------- |
 | olderThan      | param to define the number of days to run cleanup before the specified day       |
@@ -10,3 +15,18 @@
 | bucketName   | param to pass cloud storage bucket name         |
 | purgeTable   | param to cleanup tables, exported data in tmp location after archival. Default False        |
 | deploymentName   | param to pass custom deployment name        |
+
+
+How to use the plugin 
+
+
+Step 1 : Install the plugin with latest version  
+
+
+Step 2 : Plugin usage with  dryRun set to true
+
+
+https://deployments.<base-domain>/<releasename>/airflow/astronomerdbcleanup/api/v1/dbcleanup
+
+![Alt text](Untitled.png)
+
