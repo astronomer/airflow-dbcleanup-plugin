@@ -36,7 +36,7 @@ __version__ = "1.0.3"
 log = logging.getLogger(__name__)
 
 
-def has_access(method: str, resource_type: str) -> Callable[[T], T]:
+def has_access_custom(method: str, resource_type: str) -> Callable[[T], T]:
     def decorated(*, is_authorized: bool, func: Callable, args, kwargs):
         """
         Define the behavior whether the user is authorized to access the resource.
@@ -75,6 +75,11 @@ def has_access(method: str, resource_type: str) -> Callable[[T], T]:
         return cast(T, wrapper)
 
     return has_access_decorator
+
+try:
+    from airflow.www.auth import has_access
+except ImportError:
+    has_access = has_access_custom
 
 def jwt_token_secure(func):
     def jwt_secure_check(arg):
