@@ -20,10 +20,8 @@ from airflow.plugins_manager import AirflowPlugin
 from airflow.utils.session import NEW_SESSION, provide_session
 from airflow.utils import db_cleanup, dates
 from airflow.utils.db_cleanup import config_dict
-from airflow.utils.net import get_hostname
 from airflow.settings import conf
 from airflow.www import auth
-from airflow.www.extensions.init_auth_manager import get_auth_manager
 
 from .cloud_providers import ProviderFactory
 from .utils import env_check
@@ -36,7 +34,9 @@ __version__ = "1.0.3"
 log = logging.getLogger(__name__)
 
 
-def has_access_custom(method: str, resource_type: str) -> Callable[[T], T]:
+def has_access_(method: str, resource_type: str) -> Callable[[T], T]:
+    from airflow.utils.net import get_hostname
+    from airflow.www.extensions.init_auth_manager import get_auth_manager
     def decorated(*, is_authorized: bool, func: Callable, args, kwargs):
         """
         Define the behavior whether the user is authorized to access the resource.
@@ -76,10 +76,12 @@ def has_access_custom(method: str, resource_type: str) -> Callable[[T], T]:
 
     return has_access_decorator
 
+# This code is introduced to maintain backward compatibility, since with airflow > 2.8
+# we no longer have `has_access` in airflow.www.auth.
 try:
     from airflow.www.auth import has_access
 except ImportError:
-    has_access = has_access_custom
+    has_access = has_access_
 
 def jwt_token_secure(func):
     def jwt_secure_check(arg):
