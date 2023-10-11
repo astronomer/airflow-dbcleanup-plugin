@@ -391,7 +391,7 @@ class AstronomerDbcleanup(AppBuilderBaseView):
     @expose("api/v1/dbcleanup", methods=["POST", "GET"])
     @env_check("ASTRONOMER_ENVIRONMENT")
     @has_access([
-        ("can_dismiss", 'UpdateAvailable'),
+        ("can_access_dbcleanup", "AstronomerDbcleanup"),
     ])
     @csrf.exempt
     def tasks(self):
