@@ -4,7 +4,7 @@ import os
 import logging
 import json
 
-from flask import Blueprint, request, Response, Blueprint, flash, redirect, render_template, request, g
+from flask import Blueprint, request, Response, flash, redirect, render_template, g
 from flask_appbuilder import BaseView as AppBuilderBaseView
 from flask_appbuilder import expose
 from flask_login.utils import _get_user
