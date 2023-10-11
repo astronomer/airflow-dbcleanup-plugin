@@ -4,7 +4,7 @@ import os
 import logging
 import json
 
-from flask import Blueprint, request, Response, Blueprint, flash, redirect, render_template, request, g
+from flask import Blueprint, request, Response, flash, redirect, render_template, g
 from flask_appbuilder import BaseView as AppBuilderBaseView
 from flask_appbuilder import expose
 from flask_login.utils import _get_user
@@ -21,15 +21,14 @@ from airflow.utils.session import NEW_SESSION, provide_session
 from airflow.utils import db_cleanup, dates
 from airflow.utils.db_cleanup import config_dict
 from airflow.settings import conf
-from airflow.www import auth
 
 from .cloud_providers import ProviderFactory
 from .utils import env_check
-from typing import Callable, TYPE_CHECKING, TypeVar, cast, Sequence
+from typing import Callable, TypeVar, cast, Sequence
 
 T = TypeVar("T", bound=Callable)
 
-__version__ = "1.0.3"
+__version__ = "1.0.4"
 
 log = logging.getLogger(__name__)
 
