@@ -21,11 +21,10 @@ from airflow.utils.session import NEW_SESSION, provide_session
 from airflow.utils import db_cleanup, dates
 from airflow.utils.db_cleanup import config_dict
 from airflow.settings import conf
-from airflow.www import auth
 
 from .cloud_providers import ProviderFactory
 from .utils import env_check
-from typing import Callable, TYPE_CHECKING, TypeVar, cast, Sequence
+from typing import Callable, TypeVar, cast, Sequence
 
 T = TypeVar("T", bound=Callable)
 
