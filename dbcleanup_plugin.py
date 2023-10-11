@@ -4,13 +4,15 @@ import os
 import logging
 import json
 
-from flask import Blueprint, request, Response
+from flask import Blueprint, request, Response, Blueprint, flash, redirect, render_template, request, g
 from flask_appbuilder import BaseView as AppBuilderBaseView
 from flask_appbuilder import expose
 from flask_login.utils import _get_user
 from flask_jwt_extended.view_decorators import jwt_required, verify_jwt_in_request
+from functools import wraps
 from sqlalchemy.orm import Session
 from sqlalchemy import inspect, text
+
 
 from airflow.www.app import csrf
 from airflow import AirflowException
@@ -23,11 +25,67 @@ from airflow.www import auth
 
 from .cloud_providers import ProviderFactory
 from .utils import env_check
+from typing import Callable, TYPE_CHECKING, TypeVar, cast, Sequence
+
+T = TypeVar("T", bound=Callable)
 
 __version__ = "1.0.3"
 
 log = logging.getLogger(__name__)
 
+
+def has_access_(permissions: Sequence[tuple[str, str]]) -> Callable[[T], T]:
+    method: str = permissions[0][0]
+    resource_type: str = permissions[0][1]
+
+    from airflow.utils.net import get_hostname
+    from airflow.www.extensions.init_auth_manager import get_auth_manager
+
+    def decorated(*, is_authorized: bool, func: Callable, args, kwargs):
+        """
+        Define the behavior whether the user is authorized to access the resource.
+        :param is_authorized: whether the user is authorized to access the resource
+        :param func: the function to call if the user is authorized
+        :param args: the arguments of ``func``
+        :param kwargs: the keyword arguments ``func``
+        :meta private:
+        """
+        if is_authorized:
+            return func(*args, **kwargs)
+        elif get_auth_manager().is_logged_in() and not g.user.perms:
+            return (
+                render_template(
+                    "airflow/no_roles_permissions.html",
+                    hostname=get_hostname() if conf.getboolean("webserver", "EXPOSE_HOSTNAME") else "redact",
+                    logout_url=get_auth_manager().get_url_logout(),
+                ),
+                403,
+            )
+        else:
+            access_denied = conf.get("webserver", "access_denied_message")
+            flash(access_denied, "danger")
+        return redirect(get_auth_manager().get_url_login(next=request.url))
+
+    def has_access_decorator(func: T):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            return decorated(
+                is_authorized=get_auth_manager().is_authorized(method=method, resource_type=resource_type),
+                func=func,
+                args=args,
+                kwargs=kwargs,
+            )
+
+        return cast(T, wrapper)
+
+    return has_access_decorator
+
+# This code is introduced to maintain backward compatibility, since with airflow > 2.8
+# method `has_access` will be deprecated in airflow.www.auth.
+try:
+    from airflow.www.auth import has_access
+except ImportError:
+    has_access = has_access_
 
 def jwt_token_secure(func):
     def jwt_secure_check(arg):
@@ -332,11 +390,9 @@ class AstronomerDbcleanup(AppBuilderBaseView):
 
     @expose("api/v1/dbcleanup", methods=["POST", "GET"])
     @env_check("ASTRONOMER_ENVIRONMENT")
-    @auth.has_access(
-        [
-            ("can_access_dbcleanup", "AstronomerDbcleanup"),
-        ]
-    )
+    @has_access([
+        ("can_access_dbcleanup", "AstronomerDbcleanup"),
+    ])
     @csrf.exempt
     def tasks(self):
         try:
