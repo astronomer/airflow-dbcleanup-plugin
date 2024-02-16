@@ -1,4 +1,7 @@
 # astronomer-airflow-dbcleanup-plugin
+[![Build Status](https://circleci.com/gh/astronomer/airflow-dbcleanup-plugin.svg?style=shield)](https://circleci.com/gh/astronomer/certgenerator)
+[![GitHub release](https://img.shields.io/github/release/astronomer/airflow-dbcleanup-plugin)](https://github.com/astronomer/airflow-dbcleanup-plugin/releases/latest)
+[![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/astronomer/airflow-dbcleanup-plugin/blob/main/.pre-commit-config.yaml)
 
 An Apache Airflow plugin that exposes an rest endpoint to perform cleanup on airflow tables.
 
