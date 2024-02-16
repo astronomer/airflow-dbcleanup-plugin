@@ -11,8 +11,8 @@ body:
     id: userimpact
     attributes:
       label: User Impact (Required)
-      description: | 
-        Describe how this change will affects end users. If there's no end user change, write "none". 
+      description: |
+        Describe how this change will affects end users. If there's no end user change, write "none".
         When thinking about user impact, consider:
         - What part of the platform is affected by this change?
         - If this is an optional configuration, why would a user configure it?
@@ -26,4 +26,3 @@ body:
         - Adding more context or information, and a potential root cause if you know it
         - Specifying the version of Astronomer Platform, Astronomer Certified, or Apache Airflow
         - Adding a Notion doc with design plans
-
