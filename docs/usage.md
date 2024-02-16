@@ -1,8 +1,8 @@
-Airflow Rest Based cleanup plugin to cleanup and archieve metadata table 
+Airflow Rest Based cleanup plugin to cleanup and archieve metadata table
 
-How to use the plugin 
+How to use the plugin
 
-Step 1 : Install the plugin with latest version  
+Step 1 : Install the plugin with latest version
 
 ```
 pip install https://github.com/astronomer/airflow-dbcleanup-plugin/releases/download/1.0.3/astronomer_dbcleanup_plugin-1.0.3-py3-none-any.whl
@@ -13,7 +13,7 @@ https://deployments.<base-domain>/<releasename>/airflow/astronomerdbcleanup/api/
 
 ```
 
-Step 2 : Plugin Supports below set of arguments 
+Step 2 : Plugin Supports below set of arguments
 
 Supported Arguments
 
