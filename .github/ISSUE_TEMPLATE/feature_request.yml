@@ -1,0 +1,29 @@
+name: Feature request
+description: Describe a feature or change for Astronomer Software
+labels: ["kind/feature"]
+body:
+  - type: textarea
+    id: feature
+    attributes:
+      label: Feature Description (Required)
+      description: Provide a clear and concise description of what change you want to make.
+  - type: textarea
+    id: userimpact
+    attributes:
+      label: User Impact (Required)
+      description: | 
+        Describe how this change will affects end users. If there's no end user change, write "none". 
+        When thinking about user impact, consider:
+        - What part of the platform is affected by this change?
+        - If this is an optional configuration, why would a user configure it?
+        - Are there any automatic changes to behavior that users will notice?
+  - type: textarea
+    id: additionalnotes
+    attributes:
+      label: Additional Notes
+      placeholder: |
+        If applicable, consider:
+        - Adding more context or information, and a potential root cause if you know it
+        - Specifying the version of Astronomer Platform, Astronomer Certified, or Apache Airflow
+        - Adding a Notion doc with design plans
+
