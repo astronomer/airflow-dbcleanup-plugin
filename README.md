@@ -1,5 +1,5 @@
 # astronomer-airflow-dbcleanup-plugin
-[![Build Status](https://circleci.com/gh/astronomer/airflow-dbcleanup-plugin.svg?style=shield)](https://circleci.com/gh/astronomer/certgenerator)
+[![Build Status](https://circleci.com/gh/astronomer/airflow-dbcleanup-plugin.svg?style=shield)](https://circleci.com/gh/astronomer/airflow-dbcleanup-plugin)
 [![GitHub release](https://img.shields.io/github/release/astronomer/airflow-dbcleanup-plugin)](https://github.com/astronomer/airflow-dbcleanup-plugin/releases/latest)
 [![Contributors](https://img.shields.io/github/contributors/astronomer/airflow-dbcleanup-plugin)](https://github.com/astronomer/airflow-dbcleanup-plugin)
 [![Commit activity](https://img.shields.io/github/commit-activity/m/astronomer/airflow-dbcleanup-plugin)](https://github.com/astronomer/airflow-dbcleanup-plugin)
