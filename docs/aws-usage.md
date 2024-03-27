@@ -25,15 +25,15 @@ Airflow Rest Based cleanup plugin to cleanup and archieve metadata table
 ## using airflow conn id method to run airflow db cleanup
 
 
-## 
+##
 
-provider: ```gcp``` allows to connect gcp cloud provider to export the task data 
+provider: ```gcp``` allows to connect gcp cloud provider to export the task data
 
 dryRun ```true``` run and displays the data in airflow data to be cleaned info in the logs without executing the actual export
 
 olderThan ```1``` how many days of old data to be cleaned up
 
-connectionId: ```default:google_application_default``` if no connection id is defined it takes the default if specified it looks for the connection and tried to connect the provided one 
+connectionId: ```default:google_application_default``` if no connection id is defined it takes the default if specified it looks for the connection and tried to connect the provided one
 
 ![alt text](image.png)
 
@@ -43,7 +43,3 @@ connectionId: ```default:google_application_default``` if no connection id is de
 
 
 ![alt text](image-2.png)
-
-
-
-
