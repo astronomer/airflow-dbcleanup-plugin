@@ -53,12 +53,13 @@ class AwsCloudProvider(CloudProvider):
             )
             s3Class = S3Hook(aws_conn_id=kwargs["conn_id"])
             s3Class.check_for_bucket(bucket_name=kwargs["bucket_name"])
+            s3Client = s3Class.get_conn()
+
             with open(kwargs["file_path"], "rb") as f:
-                s3Class._upload_file_obj(
-                    file_obj=f,
-                    key=kwargs["file_name"],
-                    bucket_name=kwargs["bucket_name"],
-                    replace=kwargs["replace"] or False,
+                s3Client.upload_fileobj(
+                    Fileobj=f,
+                    Key=kwargs["file_name"],
+                    Bucket=kwargs["bucket_name"],
                 )
             log.info("data sent to s3 bucket sucessfully")
             return True, kwargs["release_name"], self.provider, None
