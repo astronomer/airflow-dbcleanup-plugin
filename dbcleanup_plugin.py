@@ -28,8 +28,6 @@ from typing import Callable, TypeVar, cast, Sequence
 
 T = TypeVar("T", bound=Callable)
 
-__version__ = "1.0.4"
-
 log = logging.getLogger(__name__)
 
 
