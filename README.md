@@ -22,6 +22,6 @@ You must have the astro CLI installed.
 
 ## Publishing new packages to GitHub
 
-1. Update the `__version__` variable in `dbcleanup_plugin.py`
+1. Update the `version` variable in `pyproject.toml`
 2. Run `python -m build`
 3. Upload the generated Wheel (`.whl`) and `.tar.gz` files generated in `dist/` to GitHub as a release

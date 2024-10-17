@@ -28,8 +28,6 @@ from typing import Callable, TypeVar, cast, Sequence
 
 T = TypeVar("T", bound=Callable)
 
-__version__ = "1.0.4"
-
 log = logging.getLogger(__name__)
 
 
@@ -296,8 +294,7 @@ def export_cleaned_records(
         file_path=file_path,
         file_name=file_name,
         provider_secret_env_name=provider_secret_env_name,
-        release_name=release_name,
-        replace=True,
+        release_name=release_name
     )
 
     if not status:
