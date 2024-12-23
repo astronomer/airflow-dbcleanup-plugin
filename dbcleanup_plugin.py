@@ -36,7 +36,7 @@ def has_access_(permissions: Sequence[tuple[str, str]]) -> Callable[[T], T]:
     resource_type: str = permissions[0][1]
 
     from airflow.utils.net import get_hostname
-    from airflow.www.extensions.init_auth_manager import get_auth_manager
+    from airflow.api_fastapi.app import get_auth_manager
 
     def decorated(*, is_authorized: bool, func: Callable, args, kwargs):
         """
